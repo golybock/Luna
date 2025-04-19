@@ -1,0 +1,78 @@
+﻿services:
+    # PostgreSQL
+    postgres:
+        image: postgres:16
+        container_name: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: system
+            POSTGRES_PASSWORD: system
+            POSTGRES_MULTIPLE_DATABASES: "luna_database, luna_users, luna_auth, luna_workspaces, luna_files, luna_activity, luna_templates, luna_tags, luna_graphs"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./postgres/init:/docker-entrypoint-initdb.d # Скрипты для инициализации
+        ports:
+            - "15432:5432"
+        networks:
+            - backend
+
+    # MongoDB
+    mongodb:
+        image: mongo:latest
+        container_name: mongodb
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: system
+            MONGO_INITDB_ROOT_PASSWORD: system
+        volumes:
+            - mongodb_data:/data/db
+            - ./mongodb/init:/docker-entrypoint-initdb.d # Скрипты для инициализации
+        ports:
+            - "27017:27017"
+        networks:
+            - backend
+
+    # RabbitMQ
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        container_name: rabbitmq
+        restart: always
+        environment:
+            RABBITMQ_DEFAULT_USER: system
+            RABBITMQ_DEFAULT_PASS: system
+        ports:
+            - "5672:5672"   # AMQP порт
+            - "15672:15672" # Management UI
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        networks:
+            - backend
+
+    # Redis
+    redis:
+        image: redis:alpine
+        container_name: redis
+        restart: always
+        command: redis-server --requirepass system
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        networks:
+            - backend
+
+    luna.auth.api:
+        image: luna.auth.api
+        build:
+            context: .
+            dockerfile: Luna.Auth.API/Dockerfile
+
+networks:
+    backend:
+        driver: bridge
+
+volumes:
+    postgres_data:
+    mongodb_data:
+    rabbitmq_data:
+    redis_data:
