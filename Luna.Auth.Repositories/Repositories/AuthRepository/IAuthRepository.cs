@@ -1,0 +1,38 @@
+﻿using Luna.Auth.Models.Database.Models;
+
+namespace Luna.Auth.Repositories.Repositories.AuthRepository;
+
+/// <summary>
+/// Репозиторий для работы с данными для авторизации пользователей
+/// </summary>
+public interface IAuthRepository
+{
+	/// <summary>
+	/// Извлечение данных пользователя для авторизации по идентификатору
+	/// </summary>
+	/// <param name="id">Уникальный идентификатор пользователя</param>
+	/// <returns>Объект AuthUserDatabase или null, если пользователь не найден</returns>
+	public Task<AuthUserDatabase?> GetAuthUserAsync(Guid id);
+
+	/// <summary>
+	/// Создание нового пользователя для авторизации
+	/// </summary>
+	/// <param name="userAuthDatabase">Данные пользователя для создания записи в базе данных</param>
+	/// <returns>Логическое значение, указывающее, было ли создание успешным</returns>
+	public Task<Boolean> CreateAuthUserAsync(AuthUserDatabase userAuthDatabase);
+
+	/// <summary>
+	/// Обновление данных пользователя для авторизации
+	/// </summary>
+	/// <param name="id">Id пользователя</param>
+	/// <param name="userAuthDatabase">Обновленные данные для авторизации</param>
+	/// <returns>Логическое значение, указывающее, было ли обновление успешным</returns>
+	public Task<Boolean> UpdateAuthUserAsync(Guid id, AuthUserDatabase userAuthDatabase);
+
+	/// <summary>
+	/// Удаление данных пользователя для авторизации
+	/// </summary>
+	/// <param name="id">Id пользователя</param>
+	/// <returns>Логическое значение, указывающее, было ли удаление успешным</returns>
+	public Task<Boolean> DeleteAuthUserAsync(Guid id);
+}
