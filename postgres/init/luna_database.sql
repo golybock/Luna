@@ -1,4 +1,4 @@
-\с luna_database;
+\c luna_database;
 
 create table databases
 (
@@ -47,7 +47,7 @@ CREATE TABLE "database_items"
     FOREIGN KEY ("database_id") REFERENCES "databases" ("id") ON DELETE CASCADE
 );
 
-CREATE INDEX idx_database_name_trgm ON databases USING GIN (name);
+CREATE INDEX idx_database_name_trgm ON databases (name);
 
 CREATE INDEX idx_database_items_database ON database_items (database_id);
 

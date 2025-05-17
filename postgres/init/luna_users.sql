@@ -1,4 +1,4 @@
-\luna_users;
+\c luna_users;
 
 create table users
 (

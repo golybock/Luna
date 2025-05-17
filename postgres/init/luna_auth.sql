@@ -1,4 +1,4 @@
-\luna_auth;
+\c luna_auth;
 
 CREATE table auth_users
 (
