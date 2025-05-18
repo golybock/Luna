@@ -1,8 +1,14 @@
-﻿namespace Luna.Auth.Models.View.Models;
+﻿namespace Luna.Auth.Models.Domain.Models;
 
-public class SessionArchiveDomain
+public class SessionDomain
 {
 	public Guid Id { get; set; }
+
+	public Guid UserId { get; set; }
+
+	public String Token { get; set; } = null!;
+
+	public String RefreshToken { get; set; } = null!;
 
 	public String? Device {get; set; }
 
