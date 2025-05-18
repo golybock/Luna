@@ -6,4 +6,18 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Auth.Models.Blank\Luna.Auth.Models.Blank.csproj" />
+      <ProjectReference Include="..\Luna.Auth.Models.Domain\Luna.Auth.Models.Domain.csproj" />
+      <ProjectReference Include="..\Luna.Auth.Models.View\Luna.Auth.Models.View.csproj" />
+      <ProjectReference Include="..\Luna.Auth.Repositories\Luna.Auth.Repositories.csproj" />
+      <ProjectReference Include="..\Luna.Tools\Luna.Tools.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.3.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.5" />
+    </ItemGroup>
+
 </Project>
