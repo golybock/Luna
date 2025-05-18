@@ -71,4 +71,11 @@ public interface ISessionRepository
 	/// <param name="sessionId">Идентификатор сессии (опционально)</param>
 	/// <returns>Количество удалённых записей</returns>
 	public Task<Int32> CloseSessionAsync(Guid? userId = null, Guid? sessionId = null);
+
+	/// <summary>
+	/// Удаляет записи.
+	/// </summary>
+	/// <param name="sessionIds">Идентификатор сессий</param>
+	/// <returns>Количество удалённых записей</returns>
+	public Task<Int32> CloseSessionsAsync(IEnumerable<Guid> sessionIds);
 }

@@ -1,0 +1,1 @@
+﻿select * from auth_users where reset_password_token = $1

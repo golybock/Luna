@@ -1,0 +1,1 @@
+﻿delete from auth_users where id = $1

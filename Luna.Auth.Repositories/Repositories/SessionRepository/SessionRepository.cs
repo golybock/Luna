@@ -99,4 +99,44 @@ public class SessionRepository : ISessionRepository
 
 		return keys.Length;
 	}
+
+	public async Task<int> CloseSessionsAsync(IEnumerable<Guid> sessionIds)
+	{
+		if (!sessionIds.Any())
+		{
+			return 0; // Нечего удалять
+		}
+
+		// Получаем все ключи для указанных идентификаторов сессий
+		RedisKey[] keys = GetKeysForSessions(sessionIds);
+
+		if (keys.Length == 0)
+		{
+			return 0; // Ничего не найдено для удаления
+		}
+
+		long deletedCount = await _redisDatabase.KeyDeleteAsync(keys);
+
+		return (int) deletedCount;
+	}
+
+	private RedisKey[] GetKeysForSessions(IEnumerable<Guid> sessionIds)
+	{
+		if (!sessionIds.Any())
+		{
+			return [];
+		}
+
+		// Собираем все ключи, которые соответствуют любому из указанных sessionId
+		List<RedisKey> allKeys = new List<RedisKey>();
+
+		foreach (Guid sessionId in sessionIds)
+		{
+			string keyPattern = $"*:{sessionId}";
+			RedisKey[] keysForSession = _server.Keys(pattern: keyPattern).ToArray();
+			allKeys.AddRange(keysForSession);
+		}
+
+		return allKeys.ToArray();
+	}
 }

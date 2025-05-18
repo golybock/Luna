@@ -1,0 +1,1 @@
+﻿select * from auth_users where verification_token = $1

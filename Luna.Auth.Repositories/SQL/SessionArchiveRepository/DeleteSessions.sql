@@ -1,0 +1,1 @@
+﻿delete from session_archive where id = any($1)

@@ -7,12 +7,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Luna.Auth.Models.Database\Luna.Auth.Models.Database.csproj" />
+        <ProjectReference Include="..\Luna.Auth.Models.Database\Luna.Auth.Models.Database.csproj"/>
+        <ProjectReference Include="..\Luna.Tools\Luna.Tools.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Data.Npgsql.Extension" Version="1.1.1" />
-      <PackageReference Include="StackExchange.Redis" Version="2.8.31" />
+        <PackageReference Include="Npgsql" Version="6.0.10"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.8.31"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="SQL\**\*.sql"/>
     </ItemGroup>
 
 </Project>

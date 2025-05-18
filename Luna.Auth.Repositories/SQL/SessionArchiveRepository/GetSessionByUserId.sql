@@ -1,0 +1,1 @@
+﻿select * from session_archive where user_id = $1
