@@ -1,9 +1,9 @@
 ﻿services:
     # PostgreSQL
     postgres:
+        container_name: postgres_luna
         image: postgres:16
-        container_name: postgres
-        restart: always
+        restart: on-failure
         environment:
             POSTGRES_USER: system
             POSTGRES_PASSWORD: system
@@ -36,7 +36,7 @@
     rabbitmq:
         image: rabbitmq:3-management-alpine
         container_name: rabbitmq
-        restart: always
+        restart: on-failure
         environment:
             RABBITMQ_DEFAULT_USER: system
             RABBITMQ_DEFAULT_PASS: system
@@ -61,11 +61,35 @@
         networks:
             - backend
 
+    # Services
     luna.auth.api:
         image: luna.auth.api
+        ports:
+            - "7000:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
         build:
             context: .
             dockerfile: Luna.Auth.API/Dockerfile
+        networks:
+            - backend
+        env_file:
+            - "Luna.Auth.API/.env.local"
+
+    luna.gateway.api:
+        image: luna.gateway.api
+        container_name: luna_gateway
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        ports:
+            - "8000:8080"
+        build:
+            context: .
+            dockerfile: Luna.Gateway.API/Dockerfile
+        networks:
+            - backend
+        depends_on:
+            - luna.auth.api
 
 networks:
     backend:
@@ -73,6 +97,11 @@ networks:
 
 volumes:
     postgres_data:
+        driver: local
     mongodb_data:
+        driver: local
     rabbitmq_data:
+        driver: local
     redis_data:
+        driver: local
+
