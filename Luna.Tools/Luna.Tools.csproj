@@ -10,7 +10,7 @@
       <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.3.0" />
       <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
       <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.4" />
-      <PackageReference Include="Npgsql" Version="6.0.10" />
+      <PackageReference Include="Npgsql" Version="9.0.3" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.8.0" />
     </ItemGroup>
 
