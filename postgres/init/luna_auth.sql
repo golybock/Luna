@@ -3,7 +3,6 @@
 CREATE table auth_users
 (
     id                   UUID primary key not null,
-    password_hash        bytea,
     email                text             not null unique,
     status               int              not null default 1,
     created_at           timestamptz      not null default now(),
