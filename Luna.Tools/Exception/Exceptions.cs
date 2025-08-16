@@ -1,4 +1,4 @@
-﻿namespace Luna.Auth.Services.Middleware.Exception;
+﻿namespace Luna.Tools.Exception;
 
 public class BaseServiceException : System.Exception
 {

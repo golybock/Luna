@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Luna.Auth.Services.Middleware.Exception;
+namespace Luna.Tools.Exception;
 
 public class ExceptionMiddleware
 {
@@ -39,9 +39,7 @@ public class ExceptionMiddleware
 	{
 		context.Response.ContentType = "application/json";
 
-		ErrorResponse response = _environment.IsDevelopment()
-			? new ErrorResponse(exception.Message, exception.StackTrace)
-			: new ErrorResponse("Internal server error");
+		ErrorResponse response = new ErrorResponse(exception.Message, exception.StackTrace);
 
 		HttpStatusCode statusCode = exception switch
 		{

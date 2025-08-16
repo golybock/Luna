@@ -42,7 +42,7 @@ public abstract class NpgsqlRepository
 			await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
 			return await _dataMapper.MapAsync<T>(reader);
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -72,7 +72,7 @@ public abstract class NpgsqlRepository
 
 			return await Reader<T>.ReadListAsync(reader);
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -101,7 +101,7 @@ public abstract class NpgsqlRepository
 			// returns executed or not
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -127,7 +127,7 @@ public abstract class NpgsqlRepository
 			// returns executed or not
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -157,7 +157,7 @@ public abstract class NpgsqlRepository
 
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -186,7 +186,7 @@ public abstract class NpgsqlRepository
 
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
-		catch (Exception e)
+		catch (System.Exception e)
 		{
 			Console.WriteLine(e);
 			throw;
@@ -214,7 +214,7 @@ public abstract class NpgsqlRepository
 			await transaction(npgsqlTransaction);
 			await npgsqlTransaction.CommitAsync();
 		}
-		catch (Exception)
+		catch (System.Exception)
 		{
 			await npgsqlTransaction.RollbackAsync();
 			throw;
