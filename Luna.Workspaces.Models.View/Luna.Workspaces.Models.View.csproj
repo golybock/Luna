@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Tools.SharedModels\Luna.Tools.SharedModels.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
+    </ItemGroup>
+
+</Project>
