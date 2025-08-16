@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.64.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="Protos\user.proto" GrpcServices="Server" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Users.Models.Blank\Luna.Users.Models.Blank.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
+      <ProjectReference Include="..\Luna.Users.Services\Luna.Users.Services.csproj" />
+      <ProjectReference Include="..\Luna.Users.Repositories\Luna.Users.Repositories.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
+</Project>

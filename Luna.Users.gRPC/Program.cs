@@ -1,5 +1,5 @@
 using Luna.Tools.Database.Npgsql.Options;
-using Luna.Tools.Exception;
+using Luna.Users.gRPC.Services;
 using Luna.Users.Repositories.Context;
 using Luna.Users.Repositories.Repositories.User;
 using Luna.Users.Services.Services.User;
@@ -7,20 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddGrpc();
 
-builder.Services.AddCors(options =>
-{
-	options.AddDefaultPolicy(policy =>
-	{
-		policy.AllowAnyHeader()
-			.AllowAnyMethod()
-			.AllowAnyOrigin();
-	});
-});
+builder.Services.AddGrpc(options => { options.EnableDetailedErrors = true; });
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -43,25 +32,17 @@ DatabaseOptions databaseOptions = new DatabaseOptions()
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-builder.Services.AddScoped<IUserService, UserService>();
-
 builder.Services.AddDbContext<LunaUsersContext>(options =>
 	options.UseNpgsql(databaseOptions.ConnectionString));
 
+builder.Services.AddScoped<IUserService, UserService>();
+
 WebApplication app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.MapGrpcService<UserGrpcService>();
 
-app.UseMiddleware<ExceptionMiddleware>();
-
-app.UseCors();
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
+app.MapGet("/",
+	() =>
+		"Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
 app.Run();

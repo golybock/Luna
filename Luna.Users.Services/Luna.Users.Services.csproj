@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Users.Models.Blank\Luna.Users.Models.Blank.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.Database\Luna.Users.Models.Database.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.Domain\Luna.Users.Models.Domain.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.Extensions\Luna.Users.Models.Extensions.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
+      <ProjectReference Include="..\Luna.Users.Repositories\Luna.Users.Repositories.csproj" />
+    </ItemGroup>
+
+</Project>
