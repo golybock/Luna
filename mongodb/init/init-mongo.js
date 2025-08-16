@@ -50,9 +50,9 @@ db.runCommand({
 	validator: {
 		$jsonSchema: {
 			bsonType: "object",
-			required: ["id", "title", "workspace_id", "owner_id", "latest_version", "type"],
+			required: ["_id", "title", "workspace_id", "owner_id", "latest_version", "type"],
 			properties: {
-				id: {
+				_id: {
 					bsonType: "string",
 					description: "UUID для страницы"
 				},
@@ -139,9 +139,9 @@ db.runCommand({
 	validator: {
 		$jsonSchema: {
 			bsonType: "object",
-			required: ["id", "page_id", "version", "created_by"],
+			required: ["_id", "page_id", "version", "created_by"],
 			properties: {
-				id: {
+				_id: {
 					bsonType: "string",
 					description: "UUID версии"
 				},
@@ -177,9 +177,9 @@ db.runCommand({
 	validator: {
 		$jsonSchema: {
 			bsonType: "object",
-			required: ["id", "page_id", "type", "created_by", "index"],
+			required: ["_id", "page_id", "type", "created_by", "index"],
 			properties: {
-				id: {
+				_id: {
 					bsonType: "string",
 					description: "UUID блока"
 				},
@@ -231,9 +231,9 @@ db.runCommand({
 	validator: {
 		$jsonSchema: {
 			bsonType: "object",
-			required: ["id", "page_id", "user_id", "content"],
+			required: ["_id", "page_id", "user_id", "content"],
 			properties: {
-				id: {
+				_id: {
 					bsonType: "string",
 					description: "UUID комментария"
 				},
