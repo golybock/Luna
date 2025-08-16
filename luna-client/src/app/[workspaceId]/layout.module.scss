@@ -1,0 +1,101 @@
+﻿.container {
+	display: flex;
+	flex-direction: row;
+	height: 100%;
+	width: 100%;
+}
+
+.content {
+	width: 100%;
+	padding: 16px;
+}
+
+.navbar {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	width: 100%;
+	min-width: 240px;
+	padding: 16px;
+	max-width: 240px;
+	background: var(--secondary-container);
+	border-right: 2px solid var(--secondary-container);
+
+	&Header {
+		display: flex;
+		justify-content: space-between;
+	}
+
+	&Content {
+	}
+
+	&Footer {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+}
+
+.menuItems{
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	margin-top: 16px;
+	padding: 8px;
+	gap: 8px;
+
+	&FavoritePages{
+
+	}
+
+
+	&PublicPages{
+
+	}
+}
+
+.createPageContainer {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+}
+
+.menuItem{
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	gap: 16px;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.profileBadge {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	align-items: center;
+	text-decoration: none;
+	width: 100%;
+	max-width: calc(240px - 32px);
+	text-wrap: auto;
+	cursor: pointer;
+
+	&Image{
+		display: flex;
+		background-color: var(--teriary-container);
+		width: 32px;
+		height: 32px;
+		justify-content: center;
+		align-items: center;
+		border-radius: 5px;
+	}
+}
+
+.createIcon {
+	display: flex;
+	width: 32px;
+	height: 32px;
+	justify-content: center;
+	align-items: center;
+}

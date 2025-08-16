@@ -1,0 +1,77 @@
+﻿.container {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	margin: 0 auto;
+	min-height: 50px;
+}
+
+.inputWrapper {
+	position: relative;
+	width: 100%;
+	padding-top: 14px;
+
+	.slidingInput {
+		width: 100%;
+		border: none;
+		outline: none;
+		padding: 0 8px;
+		border-bottom: 2px solid var(--teriary-container);
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 125%; /* 20px */
+		background: var(--primary-container);
+		height: 28px; // Фиксированная высота
+
+		&:hover, &:focus {
+			border-bottom: 2px solid var(--black);
+		}
+
+		&:disabled {
+			border-bottom: 2px solid var(--teriary-container);
+			color: var(--text);
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		&.inputError {
+			border-bottom: 2px solid var(--bs-red);
+		}
+	}
+
+	.floatingLabel {
+		position: absolute;
+		left: 0;
+		top: 16px; // 12px padding + 4px input padding
+		color: var(--text);
+		pointer-events: none;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 125%; /* 20px */
+		transition: all 0.2s ease-in-out;
+		transform-origin: left top;
+		background: transparent;
+
+		&.floatingLabelActive {
+			top: -4px;
+			font-size: 12px;
+			font-weight: 700;
+			color: var(--secondary-text);
+			transform: translateY(0);
+		}
+
+		&.labelError {
+			color: var(--bs-red);
+		}
+	}
+
+	.errorMessage {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		margin-top: 4px;
+		font-size: 14px;
+		color: var(--advanced-red);
+		font-weight: 500;
+	}
+}

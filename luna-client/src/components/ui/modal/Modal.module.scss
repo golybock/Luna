@@ -1,0 +1,74 @@
+@import "src/styles/variables";
+
+.overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: var(--modal-overlay-display);
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: var(--modal-overlay-z-index);
+}
+
+.container {
+	position: var(--modal-container-position);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background: var(--secondary-container);
+	max-width: var(--modal-container-max-width);
+	border-radius: var(--modal-container-border-radius);
+	border: 1px solid var(--teriary-container);
+	width: var(--modal-container-width);
+	justify-content: center;
+	height: var(--modal-container-height);
+	right: var(--modal-container-right);
+	top: var(--modal-container-top);
+	padding-bottom: var(--modal-container-padding-bottom);
+
+	@media screen and (max-width: $desktop-width) {
+		width: var(--modal-container-width);
+		height: var(--modal-container-height);
+		bottom: var(--modal-container-bottom);
+		padding-top: var(--modal-container-padding-top);
+		border-radius: var(--modal-container-border-radius);
+		overflow: hidden;
+		box-sizing: border-box;
+		justify-content: flex-end;
+		top: var(--modal-container-top);
+	}
+}
+
+.cross {
+	cursor: pointer;
+	position: absolute;
+	right: var(--modal-cross-right);
+	top: var(--modal-cross-top);
+	left: var(--modal-cross-left);
+
+	@media screen and (max-width: $desktop-width) {
+		display: none;
+	}
+
+	@media screen and (min-width: $desktop-width) {
+		display: flex;
+	}
+}
+
+.swiper {
+	position: absolute;
+	top: 0;
+	align-items: center;
+	justify-content: center;
+
+	@media screen and (max-width: $desktop-width) {
+		display: flex;
+	}
+
+	@media screen and (min-width: $desktop-width) {
+		display: none;
+	}
+}

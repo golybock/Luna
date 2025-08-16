@@ -1,0 +1,26 @@
+@import "src/styles/variables";
+
+.swiper {
+	width: 48px;
+	height: 4px;
+	position: absolute;
+	top: 8px;
+	border-radius: 2px;
+	background: var(--light-grey);
+	z-index: 999999;
+	cursor: pointer;
+
+	// Увеличиваем область захвата, добавляя псевдоэлемент
+	&::before {
+		content: "";
+		position: absolute;
+		top: -12px;
+		left: -12px;
+		right: -12px;
+		bottom: -12px;
+	}
+
+	@media screen and (min-width: $desktop-width) {
+		display: none;
+	}
+}

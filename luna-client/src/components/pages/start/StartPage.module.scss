@@ -1,0 +1,26 @@
+﻿.container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+	justify-content: center;
+	align-items: center;
+}
+
+.content {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+.workspaceCard{
+	background: var(--secondary-container);
+	padding: 8px;
+	border-radius: 5px;
+	width: 100%;
+	cursor: pointer;
+
+	&:hover{
+		background: var(--teriary-container);
+	}
+}

@@ -1,0 +1,32 @@
+﻿.primaryButton {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	border-radius: 5px;
+	background: var(--white);
+	align-items: center;
+	justify-content: center;
+	border: var(--black);
+	color: var(--text);
+	height: 40px;
+	padding: 6px;
+
+	border: none;
+	outline: none;
+
+	p {
+		color: var(--steel-gray);
+		font-weight: bold;
+		font-size: 16px;
+		text-align: center;
+	}
+
+	&:hover{
+		background: var(--primary-variant-darker);
+		border: var(--primary-variant);
+
+		p{
+			color: var(--white);
+		}
+	}
+}

@@ -1,0 +1,47 @@
+﻿$small-mobile-width: 400px;
+// среднее разрешение между 768 и 360
+$mobile-transitional: 568px;
+// мобильные - x <=768
+$mobile-width: 768px;
+// планшетные - 1024>= x >768
+$tablet-width: 1024px;
+// десктопные - 1024> x
+$desktop-width: 1024px;
+$big-desktop-width: 1280px;
+
+$breakpoints: (
+	mobile: 768px,
+	tablet: 1024px,
+	desktop: 1024px,
+);
+
+// высота нижней панели навигации
+$bottom-navbar-height: 64px;
+$mobile-header-height: 56px;
+$desktop-header-height: 96px;
+
+@mixin scrollbar {
+	overflow: hidden;
+	overflow-y: auto;
+	//margin-right: 4.5px;
+
+	&::-webkit-scrollbar {
+		position: absolute;
+		right: 4.5px;
+		width: 3px;
+	}
+
+	&::-webkit-scrollbar-track {
+		border-radius: 2px;
+		margin-bottom: 20px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: var(--light-grey);
+		border-radius: 2px;
+
+		&:hover {
+			width: 12px;
+		}
+	}
+}

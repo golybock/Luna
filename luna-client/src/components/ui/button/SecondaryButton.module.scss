@@ -1,0 +1,9 @@
+﻿.primaryButton {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	height: 100%;
+	border-radius: 5%;
+	background: var(--secondary);
+	color: var(--white);
+}
