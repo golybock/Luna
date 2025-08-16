@@ -24,6 +24,14 @@ public interface IAuthRepository
 	/// <summary>
 	/// Извлечение данных пользователя для авторизации по идентификатору
 	/// </summary>
+	/// <param name="email">Уникальная почта пользователя</param>
+	/// <param name="passwordHash">Хэш пароля</param>
+	/// <returns>Объект AuthUserDatabase или null, если пользователь не найден</returns>
+	public Task<AuthUserDatabase?> GetAuthUserAsync(string email, byte[] passwordHash);
+
+	/// <summary>
+	/// Извлечение данных пользователя для авторизации по идентификатору
+	/// </summary>
 	/// <param name="verificationToken">Токен подтверждения почты</param>
 	/// <returns>Объект AuthUserDatabase или null, если пользователь не найден</returns>
 	public Task<AuthUserDatabase?> GetAuthUserByEmailTokenAsync(string verificationToken);

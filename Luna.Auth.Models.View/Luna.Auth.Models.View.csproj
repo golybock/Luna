@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Luna.Auth.Models.Enum\Luna.Auth.Models.Enum.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
     </ItemGroup>
 
 </Project>

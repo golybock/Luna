@@ -1,1 +1,1 @@
-﻿insert into auth_users (id, password_hash, email) values ($1, $2, $3)
+﻿insert into auth_users (id, email, email_confirmed) values ($1, $2, $3)

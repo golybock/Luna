@@ -18,7 +18,6 @@ public class SessionRepository : ISessionRepository
 		ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(connectionString);
 		_redisDatabase = redis.GetDatabase();
 
-		// Получаем сервер из первого доступного эндпоинта
 		EndPoint[] endpoints = redis.GetEndPoints();
 		_server = redis.GetServer(endpoints.First());
 	}

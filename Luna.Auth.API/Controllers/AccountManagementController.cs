@@ -30,27 +30,4 @@ public class AccountManagementController : ControllerBase
 		await _accountManagementService.VerifyEmailAsync(verificationToken);
 		return Ok();
 	}
-
-	[HttpPost("[action]")]
-	[AllowAnonymous]
-	public async Task<ActionResult> RequestPasswordReset(string email)
-	{
-		await _accountManagementService.RequestPasswordResetAsync(email);
-		return Ok();
-	}
-
-	[HttpPost("[action]")]
-	[AllowAnonymous]
-	public async Task<ActionResult> ResetPassword(string resetToken, string newPassword)
-	{
-		await _accountManagementService.ResetPasswordAsync(resetToken, newPassword);
-		return Ok();
-	}
-
-	[HttpPost("[action]")]
-	public async Task<ActionResult> ChangePassword(string oldPassword, string newPassword)
-	{
-		await _accountManagementService.ChangePasswordAsync(UserId!.Value, oldPassword, newPassword);
-		return Ok();
-	}
 }

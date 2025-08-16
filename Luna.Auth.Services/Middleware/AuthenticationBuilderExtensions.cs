@@ -14,5 +14,4 @@ public static class AuthenticationBuilderExtensions
 			authenticationScheme,
 			configureOptions);
 	}
-
 }

@@ -10,6 +10,7 @@ using Luna.Auth.Services.Services.AuthService;
 using Luna.Auth.Services.Services.TokensService;
 using Luna.Tools.Crypto;
 using Luna.Tools.Web;
+using Luna.Users.gRPC.Client.Services;
 using Moq;
 
 namespace Luna.Auth.UnitTests;
@@ -19,6 +20,7 @@ public class AuthServiceTests
 	private readonly Mock<IAuthRepository> _mockAuthRepository;
 	private readonly Mock<ISessionRepository> _mockSessionRepository;
 	private readonly Mock<ITokensService> _mockTokensService;
+	private readonly Mock<IUserServiceClient> _userServiceClient;
 	private readonly AuthService _authService;
 
 	public AuthServiceTests()
@@ -27,18 +29,22 @@ public class AuthServiceTests
 		_mockSessionRepository = new Mock<ISessionRepository>();
 		Mock<ISessionArchiveRepository> mockSessionArchiveRepository = new();
 		_mockTokensService = new Mock<ITokensService>();
+		_userServiceClient = new Mock<IUserServiceClient>();
 		JwtOptions jwtOptions = new()
 		{
 			ValidInDays = 1,
 			RefreshValidInDays = 7
 		};
 
-		_authService = new AuthService(
-			_mockAuthRepository.Object,
-			_mockSessionRepository.Object,
-			mockSessionArchiveRepository.Object,
-			_mockTokensService.Object,
-			jwtOptions);
+		// _authService = new AuthService
+		// (
+		// 	_mockAuthRepository.Object,
+		// 	_mockSessionRepository.Object,
+		// 	mockSessionArchiveRepository.Object,
+		// 	_mockTokensService.Object,
+		// 	jwtOptions,
+		// 	_userServiceClient.Object
+		// );
 	}
 
 	[Fact]
@@ -53,7 +59,6 @@ public class AuthServiceTests
 		{
 			Id = userId,
 			Email = email,
-			PasswordHash = passwordHash
 		};
 
 		_mockAuthRepository.Setup(repo => repo.GetAuthUserAsync(email))
@@ -73,7 +78,7 @@ public class AuthServiceTests
 					It.IsAny<TimeSpan>()))
 			.ReturnsAsync(true);
 
-		AuthDomain result = await _authService.LoginAsync(new SignInBlank {Email = email, Password = password});
+		AuthDomain result = await _authService.SignInAsync(new SignInCodeBlank() {Email = email});
 
 		result.Should().NotBeNull();
 		result.Email.Should().Be(email);
@@ -94,13 +99,12 @@ public class AuthServiceTests
 		{
 			Id = userId,
 			Email = email,
-			PasswordHash = passwordHash
 		};
 
 		_mockAuthRepository.Setup(repo => repo.GetAuthUserAsync(email))
 			.ReturnsAsync(user);
 
 		await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-			_authService.LoginAsync(new SignInBlank {Email = email, Password = password}));
+			_authService.SignInAsync(new  SignInCodeBlank(){Email = email}));
 	}
 }

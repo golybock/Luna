@@ -11,6 +11,7 @@ public static class AuthExtensions
 		{
 			Email = authDomain.Email,
 			UserId = authDomain.UserId,
+			SessionId = authDomain.SessionId,
 		};
 	}
 }

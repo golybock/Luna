@@ -1,14 +1,20 @@
+using System.Security.Claims;
 using Luna.Auth.Repositories.Repositories.AuthRepository;
 using Luna.Auth.Repositories.Repositories.SessionArchiveRepository;
 using Luna.Auth.Repositories.Repositories.SessionRepository;
+using Luna.Auth.Repositories.Repositories.VerificationCodeRepository;
 using Luna.Auth.Services.Middleware;
-using Luna.Auth.Services.Middleware.Exception;
 using Luna.Auth.Services.Services.AccountManagementService;
 using Luna.Auth.Services.Services.AuthService;
+using Luna.Auth.Services.Services.EmailService;
 using Luna.Auth.Services.Services.SessionManagementService;
 using Luna.Auth.Services.Services.TokensService;
 using Luna.Tools.Database.Npgsql.Options;
+using Luna.Tools.Exception;
+using Luna.Tools.SharedModels.Models.RabbitMQ;
 using Luna.Tools.Web;
+using Luna.Users.gRPC.Client.Services;
+using Microsoft.AspNetCore.Authentication;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -55,7 +61,11 @@ builder.Services
 		options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? throw new Exception("Google API Secret not set");
 		options.SaveTokens = true;
 		options.CallbackPath = new PathString("/api/v1/auth/signin-google");
-		options.Scope.Add("email"); // Запрашиваем email
+		options.Scope.Add("email");
+		options.Scope.Add("profile");
+		options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+		options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
+		options.ClaimActions.MapJsonKey("picture", "picture");
 	})
 	.AddTokenAuth("TokenAuth", options =>
 	{
@@ -67,36 +77,43 @@ builder.Services
 	});
 
 
-
 DatabaseOptions databaseOptions = new DatabaseOptions()
 {
 	ConnectionString = builder.Configuration.GetConnectionString("luna_auth") ?? throw new InvalidOperationException()
 };
 
+RabbitMQSettings? rabbitMqSettings = builder.Configuration.GetSection("RabbitMq").Get<RabbitMQSettings>();
+
+builder.Services.AddSingleton(rabbitMqSettings ?? throw new NullReferenceException());
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
-builder.Services.AddSingleton<JwtOptions>(jwtOptions);
+builder.Services.AddSingleton(jwtOptions);
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+	options.Configuration = "127.0.0.1:6379";
+	options.InstanceName = "workspaces:";
+});
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<ISessionArchiveRepository, SessionArchiveRepository>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>(provider => new SessionRepository(builder.Configuration.GetConnectionString("redis")));
+builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>(provider => new VerificationCodeRepository(builder.Configuration.GetConnectionString("redis")));
 
 builder.Services.AddScoped<IAccountManagementService, AccountManagementService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISessionManagementService, SessionManagementService>();
 builder.Services.AddScoped<ITokensService, TokensService>();
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
+
 WebApplication app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseGlobalExceptionHandler();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-	app.MapOpenApi();
-}
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors();
 

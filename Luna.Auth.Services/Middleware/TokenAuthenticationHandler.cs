@@ -39,13 +39,6 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 			return AuthenticateResult.NoResult();
 		}
 
-		// // Проверяем наличие куки с токенами
-		// if (!Request.Cookies.TryGetValue("access_token", out string? accessToken) ||
-		//     !Request.Cookies.TryGetValue("refresh_token", out string? refreshToken))
-		// {
-		// 	return AuthenticateResult.Fail("Токены авторизации отсутствуют");
-		// }
-
 		try
 		{
 			// Проверяем валидность access токена с проверкой срока действия
@@ -71,6 +64,7 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 				string userId = GetClaimValue(expiredJwtToken, ClaimTypes.NameIdentifier);
 				string sessionId = GetClaimValue(expiredJwtToken, "sessionIdentifier");
 				string email = GetClaimValue(expiredJwtToken, ClaimTypes.Email);
+				string userView = GetClaimValue(expiredJwtToken, ClaimTypes.UserData);
 
 				if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(email))
 				{
@@ -93,7 +87,8 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 				[
 					new Claim(ClaimTypes.NameIdentifier, userId),
 					new Claim(ClaimTypes.Email, email),
-					new Claim("sessionIdentifier", sessionId)
+					new Claim("sessionIdentifier", sessionId),
+					new Claim(ClaimTypes.UserData, userView)
 				];
 
 				string newAccessToken = _tokensService.GenerateAccessToken(newClaims);

@@ -2,133 +2,111 @@
 using Luna.Auth.Models.Blank.Models;
 using Luna.Auth.Models.Database.Models;
 using Luna.Auth.Models.Domain.Models;
-using Luna.Auth.Models.View.Models;
 using Luna.Auth.Repositories.Repositories.AuthRepository;
 using Luna.Auth.Repositories.Repositories.SessionArchiveRepository;
 using Luna.Auth.Repositories.Repositories.SessionRepository;
+using Luna.Auth.Repositories.Repositories.VerificationCodeRepository;
 using Luna.Auth.Services.Extensions;
+using Luna.Auth.Services.Services.EmailService;
 using Luna.Auth.Services.Services.TokensService;
-using Luna.Tools.Crypto;
+using Luna.Tools.SharedModels.Models.Email;
 using Luna.Tools.Web;
+using Luna.Users.gRPC.Client.Services;
+using Luna.Users.Models.Blank.Models;
 
 namespace Luna.Auth.Services.Services.AuthService;
 
 public class AuthService : IAuthService
 {
+	private readonly TimeSpan _verificationCodeLifetime = TimeSpan.FromMinutes(1);
+
 	private readonly IAuthRepository _authRepository;
 	private readonly ISessionRepository _sessionRepository;
 	private readonly ISessionArchiveRepository _sessionArchiveRepository;
+	private readonly IVerificationCodeRepository _verificationCodeRepository;
 	private readonly ITokensService _tokensService;
+	private readonly IEmailService _emailService;
 	private readonly JwtOptions _jwtOptions;
+	private readonly IUserServiceClient _userServiceClient;
 
-	public AuthService(IAuthRepository authRepository, ISessionRepository sessionRepository,
-		ISessionArchiveRepository sessionArchiveRepository, ITokensService tokensService, JwtOptions jwtOptions)
+	public AuthService
+	(
+		IAuthRepository authRepository,
+		ISessionRepository sessionRepository,
+		ISessionArchiveRepository sessionArchiveRepository,
+		ITokensService tokensService,
+		JwtOptions jwtOptions,
+		IUserServiceClient userServiceClient,
+		IEmailService emailService,
+		IVerificationCodeRepository verificationCodeRepository
+		)
 	{
 		_authRepository = authRepository;
 		_sessionRepository = sessionRepository;
 		_sessionArchiveRepository = sessionArchiveRepository;
 		_tokensService = tokensService;
 		_jwtOptions = jwtOptions;
+		_userServiceClient = userServiceClient;
+		_emailService = emailService;
+		_verificationCodeRepository = verificationCodeRepository;
 	}
 
-	public async Task<AuthDomain> LoginAsync(SignInBlank signInBlank)
+	public async Task RequestVerificationCodeAsync(SignInBlank signInBlank)
 	{
-		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(signInBlank.Email);
+		VerificationCodeDatabase? verificationCodeDatabase = await _verificationCodeRepository.GetVerificationCodeAsync(signInBlank.Email);
 
-		if (user == null)
+		if (verificationCodeDatabase != null)
 		{
-			throw new UnauthorizedAccessException("User not exists");
+			throw new Exception("Verification code already sent, try again in a 1 minute.");
 		}
 
-		AuthUserDomain userDomain = user.ToDomain();
+		string code = GenerateRandomString(6);
 
-		if (userDomain.PasswordHash == null)
+		VerificationCodeDatabase verificationCode = new VerificationCodeDatabase()
 		{
-			throw new UnauthorizedAccessException("User password hash not set");
-		}
-
-		bool passwordIsValid = Crypto
-			.HashSha512(signInBlank.Password)
-			.SequenceEqual(userDomain.PasswordHash);
-
-		if (!passwordIsValid)
-		{
-			throw new UnauthorizedAccessException("Invalid password");
-		}
-
-		Guid sessionId = Guid.NewGuid();
-
-		string token = _tokensService.GenerateAccessToken(GetUserClaims(userDomain.Id, sessionId, userDomain.Email));
-		string refreshToken = _tokensService.GenerateRefreshToken();
-
-		AuthDomain authView = new AuthDomain()
-		{
-			Email = userDomain.Email,
-			Token = token,
-			RefreshToken = refreshToken,
-			UserId = userDomain.Id
+			Code = code,
+			CreatedAt = DateTime.UtcNow
 		};
 
-		await CreateSessionAsync(sessionId, authView);
+		AuthCodeEmail authCodeEmail = new AuthCodeEmail()
+		{
+			AppName = "Luna",
+			AuthCode = code,
+			RecipientName = signInBlank.Email,
+			RecipientEmail = signInBlank.Email,
+			ExpirationMinutes = 10
+		};
 
-		return authView;
+		// todo вынести время жизни
+		await _verificationCodeRepository.CreateVerificationCodeAsync(signInBlank.Email, verificationCode, _verificationCodeLifetime);
+		await _emailService.SendAuthCodeAsync(authCodeEmail);
 	}
 
-	public async Task<AuthDomain> RegisterAsync(SignUpBlank signUpBlank)
+	public async Task<AuthDomain> SignInAsync(SignInCodeBlank signInCodeBlank)
 	{
-		AuthUserDatabase? existsUser = await _authRepository.GetAuthUserAsync(signUpBlank.Email);
+		VerificationCodeDatabase? code = await _verificationCodeRepository.GetVerificationCodeAsync(signInCodeBlank.Email);
 
-		if (existsUser != null)
+		if (code == null || code.Code != signInCodeBlank.Code)
 		{
-			throw new Exception("User exists");
+			throw new UnauthorizedAccessException("Invalid code");
 		}
 
-		byte[] passwordHash = await Crypto.HashSha512Async(signUpBlank.Password);
-
-		AuthUserDomain newUser = new AuthUserDomain()
+		if (DateTime.UtcNow - code.CreatedAt > _verificationCodeLifetime)
 		{
-			Id = Guid.NewGuid(),
-			Email = signUpBlank.Email,
-			PasswordHash = passwordHash
-		};
-
-		Boolean createdUser = await _authRepository.CreateAuthUserAsync(newUser.ToDatabase());
-
-		if (!createdUser)
-		{
-			throw new Exception("User not saved");
+			throw new UnauthorizedAccessException("Code lifetime expired");
 		}
 
-		Guid sessionId = Guid.NewGuid();
-
-		string token = _tokensService.GenerateAccessToken(GetUserClaims(newUser.Id, sessionId, newUser.Email));
-		string refreshToken = _tokensService.GenerateRefreshToken();
-
-		AuthDomain authView = new AuthDomain()
-		{
-			Email = newUser.Email,
-			Token = token,
-			RefreshToken = refreshToken,
-			UserId = newUser.Id
-		};
-
-		await CreateSessionAsync(sessionId, authView);
-
-		return authView;
-	}
-
-	public async Task<AuthDomain> LoginOauth2(string email)
-	{
-		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(email);
+		await _verificationCodeRepository.DeleteVerificationCodeAsync(signInCodeBlank.Email);
 
 		AuthUserDomain newUser;
+		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(signInCodeBlank.Email);
 
 		if (user == null)
 		{
 			newUser = new AuthUserDomain()
 			{
 				Id = Guid.NewGuid(),
-				Email = email,
+				Email = signInCodeBlank.Email,
 			};
 
 			Boolean createdUser = await _authRepository.CreateAuthUserAsync(newUser.ToDatabase());
@@ -137,28 +115,95 @@ public class AuthService : IAuthService
 			{
 				throw new Exception("User not saved");
 			}
+
+			// Создаем пользователя на сервисе пользователей через gRPC,
+			// в случае ошибки откатываем созданного пользователя в сервисе авторизации
+			try
+			{
+				await _userServiceClient.CreateUserAsync(newUser.Id, new UserBlank());
+			}
+			catch (Exception e)
+			{
+				await _authRepository.DeleteAuthUserAsync(newUser.Id);
+				throw;
+			}
 		}
 		else
 		{
 			newUser = user.ToDomain();
 		}
 
+		AuthDomain authDomain = CreateAuthDomainAsync(newUser.Id, newUser.Email);
+		await SaveSessionAsync(authDomain);
+
+		return authDomain;
+	}
+
+	public async Task<AuthDomain> LoginOauth2(OAuth2Blank oAuth2Blank)
+	{
+		AuthUserDomain newUser;
+		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(oAuth2Blank.Email);
+
+		if (user == null)
+		{
+			newUser = new AuthUserDomain()
+			{
+				Id = Guid.NewGuid(),
+				Email = oAuth2Blank.Email,
+			};
+
+			Boolean createdUser = await _authRepository.CreateAuthUserAsync(newUser.ToDatabase());
+
+			if (!createdUser)
+			{
+				throw new Exception("User not saved");
+			}
+
+			// Создаем пользователя на сервисе пользователей через gRPC,
+			// в случае ошибки откатываем созданного пользователя в сервисе авторизации
+			try
+			{
+				await _userServiceClient.CreateUserAsync(newUser.Id,
+					new UserBlank() {Username = oAuth2Blank.Username, Image = oAuth2Blank.ImageLink});
+			}
+			catch (Exception e)
+			{
+				await _authRepository.DeleteAuthUserAsync(newUser.Id);
+				throw;
+			}
+		}
+		else
+		{
+			newUser = user.ToDomain();
+		}
+
+		AuthDomain authDomain = CreateAuthDomainAsync(newUser.Id, newUser.Email);
+		await SaveSessionAsync(authDomain);
+
+		return authDomain;
+	}
+
+	private AuthDomain CreateAuthDomainAsync(Guid userId, string email)
+	{
 		Guid sessionId = Guid.NewGuid();
 
-		string token = _tokensService.GenerateAccessToken(GetUserClaims(newUser.Id, sessionId, newUser.Email));
+		List<Claim> claims = GetUserClaims(userId, sessionId, email);
+		string token = _tokensService.GenerateAccessToken(claims);
 		string refreshToken = _tokensService.GenerateRefreshToken();
 
-		AuthDomain authView = new AuthDomain()
+		return new AuthDomain()
 		{
-			Email = newUser.Email,
+			UserId = userId,
+			Email = email,
 			Token = token,
 			RefreshToken = refreshToken,
-			UserId = newUser.Id
+			SessionId = sessionId,
 		};
+	}
 
-		await CreateSessionAsync(sessionId, authView);
-
-		return authView;
+	private async Task SaveSessionAsync(AuthDomain authDomain)
+	{
+		await CreateSessionAsync(authDomain);
 	}
 
 	public async Task LogoutAsync(Guid userId, Guid sessionId)
@@ -197,7 +242,7 @@ public class AuthService : IAuthService
 		];
 	}
 
-	private async Task CreateSessionAsync(Guid sessionId, AuthDomain authView, DateTime? createdAt = null)
+	private async Task CreateSessionAsync(AuthDomain authView, DateTime? createdAt = null)
 	{
 		TimeSpan sessionValidTimeSpan = TimeSpan.FromDays(_jwtOptions.RefreshValidInDays);
 
@@ -206,11 +251,26 @@ public class AuthService : IAuthService
 			UserId = authView.UserId,
 			RefreshToken = authView.RefreshToken,
 			Token = authView.Token,
-			Id = sessionId,
+			Id = authView.SessionId,
 			ExpiresAt = DateTime.UtcNow.Add(sessionValidTimeSpan),
 			CreatedAt = createdAt ?? DateTime.UtcNow,
 		};
 
-		await _sessionRepository.SetSessionAsync(authView.UserId, sessionId, sessionDatabase, sessionValidTimeSpan);
+		await _sessionRepository.SetSessionAsync(authView.UserId, authView.SessionId, sessionDatabase,
+			sessionValidTimeSpan);
+	}
+
+	private string GenerateRandomString(int length)
+	{
+		const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+		Random random = new Random();
+		char[] chars = new char[length];
+
+		for (int i = 0; i < length; i++)
+		{
+			chars[i] = validChars[random.Next(validChars.Length)];
+		}
+
+		return new string(chars);
 	}
 }

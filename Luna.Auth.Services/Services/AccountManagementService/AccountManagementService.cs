@@ -53,59 +53,6 @@ public class AccountManagementService : IAccountManagementService
 		await _authRepository.UpdateAuthUserAsync(user.Id, userDomain.ToDatabase());
 	}
 
-	public async Task RequestPasswordResetAsync(string email)
-	{
-		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(email);
-
-		if (user == null)
-		{
-			throw new UnauthorizedAccessException("User not exists");
-		}
-
-		AuthUserDomain userDomain = user.ToDomain();
-
-		userDomain.ResetPasswordToken = GenerateRandomString(64);
-		userDomain.ResetTokenExpires = DateTime.UtcNow.AddMinutes(30); //todo вынести глобально
-
-		await _authRepository.UpdateAuthUserAsync(user.Id, userDomain.ToDatabase());
-	}
-
-	public async Task ResetPasswordAsync(string resetToken, string newPassword)
-	{
-		AuthUserDatabase? user = await _authRepository.GetAuthUserByResetTokenAsync(resetToken);
-
-		if (user == null || user.ResetTokenExpires < DateTime.UtcNow)
-		{
-			throw new UnauthorizedAccessException("Token invalid");
-		}
-
-		AuthUserDomain userDomain = user.ToDomain();
-
-		userDomain.PasswordHash = await Crypto.HashSha512Async(newPassword);
-		userDomain.ResetTokenExpires = null;
-		userDomain.ResetPasswordToken = null;
-
-		await _authRepository.UpdateAuthUserAsync(user.Id, userDomain.ToDatabase());
-	}
-
-	public async Task ChangePasswordAsync(Guid userId, string oldPassword, string newPassword)
-	{
-		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(userId);
-
-		if (user == null || !(await Crypto.HashSha512Async(oldPassword)).SequenceEqual(user.PasswordHash ?? []))
-		{
-			throw new UnauthorizedAccessException("Password invalid");
-		}
-
-		AuthUserDomain userDomain = user.ToDomain();
-
-		userDomain.PasswordHash = await Crypto.HashSha512Async(newPassword);
-		userDomain.ResetTokenExpires = null;
-		userDomain.ResetPasswordToken = null;
-
-		await _authRepository.UpdateAuthUserAsync(user.Id, userDomain.ToDatabase());
-	}
-
 	private string GenerateRandomString(int length)
 	{
 		const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

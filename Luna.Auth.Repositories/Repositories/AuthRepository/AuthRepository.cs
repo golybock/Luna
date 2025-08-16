@@ -39,11 +39,33 @@ public class AuthRepository : NpgsqlRepository, IAuthRepository
 	{
 		try
 		{
-			string query = SqlQueries.GetSql(SqlQueries.AuthRepository.GetByEmail);
+			// string query = SqlQueries.GetSql(SqlQueries.AuthRepository.GetByEmail);
+			string query = "select * from auth_users where email = $1";
 
 			NpgsqlParameter[] parameters =
 			[
 				new NpgsqlParameter() {Value = email}
+			];
+
+			return await GetAsync<AuthUserDatabase>(query, parameters);
+		}
+		catch (Exception e)
+		{
+			_logger.LogError("Error while executing {Method}: {Error}", nameof(GetAuthUserAsync), e.Message);
+			throw;
+		}
+	}
+
+	public async Task<AuthUserDatabase?> GetAuthUserAsync(string email, byte[] passwordHash)
+	{
+		try
+		{
+			string query = SqlQueries.GetSql(SqlQueries.AuthRepository.GetByEmail);
+
+			NpgsqlParameter[] parameters =
+			[
+				new NpgsqlParameter() {Value = email},
+				new NpgsqlParameter() {Value = passwordHash}
 			];
 
 			return await GetAsync<AuthUserDatabase>(query, parameters);
@@ -90,7 +112,8 @@ public class AuthRepository : NpgsqlRepository, IAuthRepository
 		}
 		catch (Exception e)
 		{
-			_logger.LogError("Error while executing {Method}: {Error}", nameof(GetAuthUserByResetTokenAsync), e.Message);
+			_logger.LogError("Error while executing {Method}: {Error}", nameof(GetAuthUserByResetTokenAsync),
+				e.Message);
 			throw;
 		}
 	}
@@ -104,9 +127,8 @@ public class AuthRepository : NpgsqlRepository, IAuthRepository
 			NpgsqlParameter[] parameters =
 			[
 				new NpgsqlParameter() {Value = userAuthDatabase.Id},
-				new NpgsqlParameter()
-					{Value = userAuthDatabase.PasswordHash == null ? DBNull.Value : userAuthDatabase.PasswordHash},
 				new NpgsqlParameter() {Value = userAuthDatabase.Email},
+				new NpgsqlParameter() {Value = userAuthDatabase.EmailConfirmed},
 			];
 
 			return await ExecuteAsync(query, parameters);
@@ -127,8 +149,6 @@ public class AuthRepository : NpgsqlRepository, IAuthRepository
 			NpgsqlParameter[] parameters =
 			[
 				new NpgsqlParameter() {Value = id},
-				new NpgsqlParameter()
-					{Value = userAuthDatabase.PasswordHash == null ? DBNull.Value : userAuthDatabase.PasswordHash},
 				new NpgsqlParameter() {Value = userAuthDatabase.Email},
 				new NpgsqlParameter() {Value = userAuthDatabase.Status},
 				new NpgsqlParameter() {Value = userAuthDatabase.EmailConfirmed},

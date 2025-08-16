@@ -56,6 +56,63 @@
 			],
 			"DangerousAcceptAnyServerCertificateValidator": true,
 			"CookiesUpstream": true
+		},
+		{
+			"DownstreamPathTemplate": "/api/v1/User/{everything}",
+			"DownstreamScheme": "http",
+			"DownstreamHostAndPorts": [
+				{
+					"Host": "luna-luna.users.api-1",
+					"Port": 8080
+				}
+			],
+			"UpstreamPathTemplate": "/api/v1/User/{everything}",
+			"UpstreamHttpMethod": [
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE"
+			],
+			"DangerousAcceptAnyServerCertificateValidator": true,
+			"CookiesUpstream": true
+		},
+		{
+			"DownstreamPathTemplate": "/api/v1/Workspace/{everything}",
+			"DownstreamScheme": "http",
+			"DownstreamHostAndPorts": [
+				{
+					"Host": "luna-luna.workspaces.api-1",
+					"Port": 8080
+				}
+			],
+			"UpstreamPathTemplate": "/api/v1/Workspace/{everything}",
+			"UpstreamHttpMethod": [
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE"
+			],
+			"DangerousAcceptAnyServerCertificateValidator": true,
+			"CookiesUpstream": true
+		},
+		{
+			"DownstreamPathTemplate": "/api/v1/Pages/{everything}",
+			"DownstreamScheme": "http",
+			"DownstreamHostAndPorts": [
+				{
+					"Host": "luna-luna.pages.api-1",
+					"Port": 8080
+				}
+			],
+			"UpstreamPathTemplate": "/api/v1/Pages/{everything}",
+			"UpstreamHttpMethod": [
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE"
+			],
+			"DangerousAcceptAnyServerCertificateValidator": true,
+			"CookiesUpstream": true
 		}
 	],
 	"GlobalConfiguration": {

@@ -4,8 +4,6 @@ public class AuthUserDatabase
 {
 	public Guid Id { get; set; }
 
-	public byte[]? PasswordHash { get; set; }
-
 	public string Email { get; set; } = null!;
 
 	public Int32 Status { get; set; }

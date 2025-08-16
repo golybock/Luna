@@ -6,8 +6,6 @@ public class AuthUserDomain
 {
 	public Guid Id { get; set; }
 
-	public byte[]? PasswordHash { get; set; }
-
 	public string Email { get; set; } = null!;
 
 	public AuthUserStatus Status { get; set; }

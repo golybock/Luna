@@ -27,7 +27,6 @@ public class AuthRepositoryTests : IClassFixture<DatabaseFixture>
 		{
 			Id = userId,
 			Email = $"test_{userId}@example.com",
-			PasswordHash = Crypto.HashSha512("password")
 		};
 
 		bool created = await _authRepository.CreateAuthUserAsync(user);

@@ -24,6 +24,7 @@ public class SqlQueries
 	{
 		public const string GetById = "AuthRepository.GetAuthUserById.sql";
 		public const string GetByEmail = "AuthRepository.GetAuthUserByEmail.sql";
+		public const string GetByEmailAndPassword = "AuthRepository.GetAuthUserByEmailAndPassword.sql";
 		public const string GetByEmailToken = "AuthRepository.GetAuthUserByEmailToken.sql";
 		public const string GetByResetToken = "AuthRepository.GetAuthUserByResetToken.sql";
 		public const string Create = "AuthRepository.CreateAuthUser.sql";

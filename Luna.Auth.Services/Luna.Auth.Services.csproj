@@ -12,12 +12,16 @@
       <ProjectReference Include="..\Luna.Auth.Models.View\Luna.Auth.Models.View.csproj" />
       <ProjectReference Include="..\Luna.Auth.Repositories\Luna.Auth.Repositories.csproj" />
       <ProjectReference Include="..\Luna.Tools\Luna.Tools.csproj" />
+      <ProjectReference Include="..\Luna.Users.gRPC.Client\Luna.Users.gRPC.Client.csproj" />
+      <ProjectReference Include="..\Luna.Users.Services\Luna.Users.Services.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.Domain\Luna.Users.Models.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.3.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.5" />
+      <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
     </ItemGroup>
 
 </Project>
