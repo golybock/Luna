@@ -76,6 +76,56 @@
         env_file:
             - "Luna.Auth.API/.env.local"
 
+
+    luna.workspaces.api:
+        image: luna.workspaces.api
+        ports:
+            - "7003:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        build:
+            context: .
+            dockerfile: Luna.Workspaces.API/Dockerfile
+        networks:
+            - backend
+
+
+    luna.users.api:
+        image: luna.users.api
+        ports:
+            - "7001:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        build:
+            context: .
+            dockerfile: Luna.Users.API/Dockerfile
+        networks:
+            - backend
+
+    luna.pages.api:
+        image: luna.pages.api
+        ports:
+            - "7005:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        build:
+            context: .
+            dockerfile: Luna.Pages.API/Dockerfile
+        networks:
+            - backend
+
+    luna.users.gRPC:
+        image: luna.auth.grpc
+        ports:
+            - "7002:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        build:
+            context: .
+            dockerfile: Luna.Users.gRPC/Dockerfile
+        networks:
+            - backend
+
     luna.gateway.api:
         image: luna.gateway.api
         container_name: luna_gateway
@@ -90,6 +140,22 @@
             - backend
         depends_on:
             - luna.auth.api
+
+    luna.notification.api:
+        image: luna.notification.api
+        container_name: luna_notification
+        environment:
+            ASPNETCORE_ENVIRONMENT: Release
+        ports:
+            - "7004:8080"
+        build:
+            context: .
+            dockerfile: Luna.Notification.API/Dockerfile
+        networks:
+            - backend
+        depends_on:
+            - rabbitmq
+        restart: on-failure
 
 networks:
     backend:
