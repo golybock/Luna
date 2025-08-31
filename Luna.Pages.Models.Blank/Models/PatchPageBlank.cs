@@ -1,6 +1,4 @@
-﻿using MongoDB.Bson;
-
-namespace Luna.Pages.Models.Blank.Models;
+﻿namespace Luna.Pages.Models.Blank.Models;
 
 public class PatchPageBlank
 {
@@ -12,5 +10,5 @@ public class PatchPageBlank
 	public string? Type { get; set; }
 	public bool? IsTemplate { get; set; }
 	public int? Index { get; set; }
-	public BsonDocument? Properties { get; set; }
+	public object? Properties { get; set; }
 }

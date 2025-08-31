@@ -1,5 +1,7 @@
-﻿using Luna.Pages.Models.Database.Models;
+﻿using System.Text.Json;
+using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Luna.Pages.Repositories.Repositories.Page.Command;
@@ -19,23 +21,30 @@ public class PageCommandRepository : PageRepositoryBase, IPageCommandRepository
 		if (!updates.Any())
 			return true;
 
-		FilterDefinition<PageDatabase> filter = Filters.Filters.ActivePageById(pageId.ToString());
-		UpdateDefinition<PageDatabase>? updateBuilder = Builders<PageDatabase>.Update.Set(p => p.UpdatedAt, DateTime.UtcNow);
-
-		// исключения
-		HashSet<string> prohibitedFields =
-		[
-			nameof(PageDatabase.Id),
-			nameof(PageDatabase.CreatedAt),
-			nameof(PageDatabase.LatestVersion)
-		];
-
-		foreach (var (key, value) in updates.Where(u => !prohibitedFields.Contains(u.Key)))
+		FilterDefinition<PageDatabase> filter = Builders<PageDatabase>.Filter.Eq("_id", pageId.ToString());
+		BsonDocument bsonUpdates = new BsonDocument("$set", new BsonDocument())
 		{
-			updateBuilder = updateBuilder.Set(key, value);
+			["$set"] =
+			{
+				["updated_at"] = DateTime.UtcNow
+			}
+		};
+
+		foreach (var (key, value) in updates)
+		{
+			if (string.IsNullOrWhiteSpace(key))
+				continue;
+
+			bsonUpdates["$set"][key] = BsonValue.Create(value);
 		}
 
-		UpdateResult? result = await PagesCollection.UpdateOneAsync(filter, updateBuilder, cancellationToken: cancellationToken);
+		Console.WriteLine($"BsonDocument update: {bsonUpdates.ToJson()}");
+
+		UpdateResult? result = await PagesCollection.UpdateOneAsync(filter, bsonUpdates, cancellationToken: cancellationToken);
+
+		Console.WriteLine($"Matched documents: {result.MatchedCount}");
+		Console.WriteLine($"Modified documents: {result.ModifiedCount}");
+		Console.WriteLine($"IsAcknowledged: {result.IsAcknowledged}");
 
 		return result.ModifiedCount > 0;
 	}

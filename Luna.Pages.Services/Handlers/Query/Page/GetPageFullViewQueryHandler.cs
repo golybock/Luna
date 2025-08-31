@@ -2,6 +2,7 @@
 using Luna.Pages.Models.Domain.Models;
 using Luna.Pages.Repositories.Repositories.Page.Query;
 using Luna.Pages.Repositories.Repositories.PageVersion;
+using Luna.Pages.Repositories.Repositories.PageVersion.Query;
 using Luna.Pages.Services.Queries.Page;
 using MediatR;
 using Microsoft.Extensions.Logging;

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using Luna.Pages.Models.Blank.Models;
+using Luna.Pages.Models.View.Models;
 using Luna.Pages.Services.Services;
+using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.Web;
 using Microsoft.AspNetCore.SignalR;
 
@@ -13,7 +15,7 @@ public class PageHub : HubBase, IPageHub
 
 	// Словарь для отслеживания пользователей на конкретных страницах
 	private static readonly ConcurrentDictionary<string, HashSet<Guid>> PageUsers = new();
-	// Словарь для отслеживания активных страниц пользователей
+	// Словарь для отслеживания активных страниц пользователей (connectionId -> pageId)
 	private static readonly ConcurrentDictionary<string, string> UserPages = new();
 
 	public PageHub(ILogger<PageHub> logger, IPageService pageService)
@@ -24,30 +26,26 @@ public class PageHub : HubBase, IPageHub
 
 	public override async Task OnConnectedAsync()
 	{
-		Guid? userId = GetUserIdFromCookie();
-
-		if (userId == null)
+		if (UserId == null)
 		{
 			Context.Abort();
 			return;
 		}
 
-		_logger.LogInformation("User {UserId} connected with connection {ContextConnectionId}", userId, Context.ConnectionId);
+		_logger.LogInformation("User {UserId} connected with connection {ContextConnectionId}", UserId, Context.ConnectionId);
 		await base.OnConnectedAsync();
 	}
 
 	public override async Task OnDisconnectedAsync(Exception exception)
 	{
-		Guid userId = GetUserIdFromCookie()!.Value;
 		string connectionId = Context.ConnectionId;
 
-		// Удаляем пользователя из текущей страницы
-		if (UserPages.TryGetValue(connectionId, out string? pageId))
+		if (UserId.HasValue && UserPages.TryGetValue(connectionId, out string? pageId))
 		{
-			await LeavePageInternal(pageId, userId, connectionId);
+			await LeavePageInternal(pageId, UserId.Value, connectionId);
 		}
 
-		_logger.LogInformation("User {UserId} disconnected", userId);
+		_logger.LogInformation("User {UserId} disconnected", UserId);
 		await base.OnDisconnectedAsync(exception);
 	}
 
@@ -55,10 +53,9 @@ public class PageHub : HubBase, IPageHub
 	{
 		try
 		{
-			// Удаляем из группы
-			await Groups.RemoveFromGroupAsync(connectionId, $"page_{pageId}");
+			string group = $"page_{pageId}";
+			await Groups.RemoveFromGroupAsync(connectionId, group);
 
-			// Удаляем пользователя из списка активных на странице
 			if (PageUsers.TryGetValue(pageId, out var users))
 			{
 				users.Remove(userId);
@@ -70,7 +67,7 @@ public class PageHub : HubBase, IPageHub
 
 			UserPages.TryRemove(connectionId, out _);
 
-			await Clients.Group($"page_{pageId}").SendAsync("UserLeftPage", userId, pageId);
+			await Clients.Group(group).SendAsync("UserLeftPage", new { userId, pageId });
 
 			_logger.LogInformation("User {UserId} left page {PageId}", userId, pageId);
 		}
@@ -82,51 +79,179 @@ public class PageHub : HubBase, IPageHub
 
 	public async Task JoinPage(Guid pageId)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		string pid = pageId.ToString();
+		string group = $"page_{pid}";
+		string connectionId = Context.ConnectionId;
+
+		// Если уже на другой странице — выйдем из неё
+		if (UserPages.TryGetValue(connectionId, out string? oldPageId) && oldPageId != pid)
+		{
+			await LeavePageInternal(oldPageId, UserId.Value, connectionId);
+		}
+
+		await Groups.AddToGroupAsync(connectionId, group);
+
+		PageUsers.AddOrUpdate(pid,
+			_ => new HashSet<Guid> { UserId.Value },
+			(_, set) => { set.Add(UserId.Value); return set; });
+
+		UserPages[connectionId] = pid;
+
+		await Clients.Group(group).SendAsync("UserJoinedPage", new { userId = UserId.Value, pageId = pid });
+		_logger.LogInformation("User {UserId} joined page {PageId}", UserId, pid);
 	}
 
 	public async Task LeavePage(Guid pageId)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+		await LeavePageInternal(pageId.ToString(), UserId.Value, Context.ConnectionId);
 	}
 
 	public async Task Pong(DateTime timestamp)
 	{
-		throw new NotImplementedException();
+		await Clients.Caller.SendAsync("Pong", new { sent = timestamp, server = DateTime.UtcNow });
 	}
 
 	public async Task GetPageData(Guid pageId)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		PageFullView? page = await _pageService.GetPageFullViewAsync(getRequest);
+		await Clients.Caller.SendAsync("PageData", page);
 	}
 
 	public async Task UpdatePage(Guid pageId, PatchPageBlank patchPageBlank)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		UpdateRequest<PatchPageBlank> request = new UpdateRequest<PatchPageBlank>
+		{
+			ObjectId = pageId,
+			UserId = UserId.Value,
+			Blank = patchPageBlank
+		};
+
+		bool rs = await _pageService.UpdatePageAsync(request);
+		Console.WriteLine($"Updated: {rs}");
+
+		string group = $"page_{pageId}";
+		await Clients.Group(group).SendAsync("PageUpdated", new { pageId });
 	}
 
 	public async Task UpdatePageContent(Guid pageId, UpdatePageContentBlank pageContentBlank)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		UpdateRequest<UpdatePageContentBlank> request = new UpdateRequest<UpdatePageContentBlank>
+		{
+			ObjectId = pageId,
+			UserId = UserId.Value,
+			Blank = pageContentBlank
+		};
+
+		await _pageService.UpdatePageContentAsync(request);
+
+		// После обновления вернем свежие блоки
+		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		IEnumerable<PageBlockView> blocks = await _pageService.GetPageBlocksAsync(getRequest);
+		await Clients.Group($"page_{pageId}").SendAsync("PageContentUpdated", new { pageId, blocks });
 	}
 
 	public async Task GetPageComments(Guid pageId)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		var comments = await _pageService.GetPageCommentsAsync(getRequest);
+		await Clients.Caller.SendAsync("PageComments", new { pageId, comments });
 	}
 
 	public async Task CreateComment(Guid pageId, CreatePageCommentBlank createPageCommentBlank)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		createPageCommentBlank.PageId = pageId;
+		BlankRequest<CreatePageCommentBlank> request = new BlankRequest<CreatePageCommentBlank>
+		{
+			UserId = UserId.Value,
+			Blank = createPageCommentBlank
+		};
+		await _pageService.CreatePageCommentAsync(request);
+
+		// Опубликуем свежие комментарии для страницы
+		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		var comments = await _pageService.GetPageCommentsAsync(getRequest);
+		await Clients.Group($"page_{pageId}").SendAsync("PageCommentsUpdated", new { pageId, comments });
 	}
 
 	public async Task UpdateComment(Guid commentId, CreatePageCommentBlank createPageCommentBlank)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		// Маппим Create -> Patch для апдейта
+		PatchPageCommentBlank patch = new PatchPageCommentBlank
+		{
+			Content = createPageCommentBlank.Content,
+			ParentId = createPageCommentBlank.ParentId,
+			BlockId = createPageCommentBlank.BlockId,
+			Reactions = createPageCommentBlank.Reactions
+		};
+
+		UpdateRequest<PatchPageCommentBlank> request = new UpdateRequest<PatchPageCommentBlank>
+		{
+			ObjectId = commentId,
+			UserId = UserId.Value,
+			Blank = patch
+		};
+
+		await _pageService.UpdatePageCommentAsync(request);
+		await Clients.Caller.SendAsync("CommentUpdated", new { commentId });
 	}
 
 	public async Task DeleteComment(Guid commentId)
 	{
-		throw new NotImplementedException();
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		DeleteRequest request = new DeleteRequest { ObjectId = commentId, UserId = UserId.Value };
+		await _pageService.DeletePageCommentAsync(request);
+		await Clients.Caller.SendAsync("CommentDeleted", new { commentId });
 	}
 }

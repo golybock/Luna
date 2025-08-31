@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json;
 using Luna.Pages.Repositories.Repositories.Page.Command;
 using Luna.Pages.Services.Commands.Page;
 using MediatR;
@@ -25,7 +26,7 @@ public class UpdatePageCommandHandler : IRequestHandler<UpdatePageCommand, bool>
 
 			if (value != null)
 			{
-				updates.Add(property.Name, value);
+				updates.Add(property.Name.ToLower(), value);
 			}
 		}
 

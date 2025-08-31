@@ -31,7 +31,7 @@ public static class Filters
 	{
 		return Builders<PageDatabase>.Filter.And(
 			ActivePage(),
-			Builders<PageDatabase>.Filter.Eq(p => p.Id, pageId)
+			Builders<PageDatabase>.Filter.Eq("_id", pageId)
 		);
 	}
 }

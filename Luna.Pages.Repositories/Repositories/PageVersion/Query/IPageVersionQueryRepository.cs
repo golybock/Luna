@@ -1,6 +1,6 @@
 ﻿using Luna.Pages.Models.Database.Models;
 
-namespace Luna.Pages.Repositories.Repositories.PageVersion;
+namespace Luna.Pages.Repositories.Repositories.PageVersion.Query;
 
 public interface IPageVersionQueryRepository
 {

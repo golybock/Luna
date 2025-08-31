@@ -10,7 +10,7 @@ public class PageVersionDomain
 {
 	public Guid Id { get; set; }
 	public Guid PageId { get; set; }
-	public int Version  { get; set; }
+	public int Version { get; set; }
 	public IEnumerable<PageBlockDomain>? Content { get; set; }
 	public DateTime CreatedAt { get; set; }
 	public DateTime UpdatedAt { get; set; }
@@ -32,6 +32,29 @@ public class PageVersionDomain
 		};
 	}
 
+	private static object? ExtractBsonValue(BsonDocument document, string fieldName)
+	{
+		if (!document.Contains(fieldName))
+			return null;
+
+		var bsonValue = document[fieldName];
+
+		// Проверяем на null
+		if (bsonValue.IsBsonNull)
+			return null;
+
+		// Проверяем на специальный маркер C# null
+		if (bsonValue.IsBsonDocument)
+		{
+			var bsonDoc = bsonValue.AsBsonDocument;
+			if (bsonDoc.Contains("_csharpnull") && bsonDoc["_csharpnull"].AsBoolean == true)
+				return null;
+			return bsonDoc;
+		}
+
+		return bsonValue;
+	}
+
 	public static PageVersionDomain? FromDatabase(PageVersionDatabase pageVersionDatabase)
 	{
 		return new PageVersionDomain()
@@ -39,7 +62,8 @@ public class PageVersionDomain
 			Id = Guid.Parse(pageVersionDatabase.Id),
 			PageId = Guid.Parse(pageVersionDatabase.PageId),
 			Version = pageVersionDatabase.Version,
-			Content = JsonSerializer.Deserialize<IEnumerable<PageBlockDomain>>(pageVersionDatabase.Content.ToJson()),
+			// Исправление: преобразуем BsonArray напрямую в PageBlockDomain
+			Content = pageVersionDatabase.Content?.Select(bsonValue => new PageBlockDomain(){}),
 			CreatedAt = pageVersionDatabase.CreatedAt,
 			UpdatedAt = pageVersionDatabase.UpdatedAt,
 			ChangeDescription = pageVersionDatabase.ChangeDescription,
@@ -47,14 +71,15 @@ public class PageVersionDomain
 		};
 	}
 
-	public static PageVersionDomain CreateFromBlank(Guid id, Guid pageId, Guid createdBy, UpdatePageContentBlank updatePageContentBlank)
+	public static PageVersionDomain CreateFromBlank(Guid id, Guid pageId, Guid createdBy,
+		UpdatePageContentBlank updatePageContentBlank)
 	{
 		return new PageVersionDomain()
 		{
 			Id = id,
 			PageId = pageId,
 			Version = 1,
-			Content = JsonSerializer.Deserialize<IEnumerable<PageBlockDomain>>(updatePageContentBlank.ToJson()),
+			Content = updatePageContentBlank.Blocks.Select(item => PageBlockDomain.FromBlank(item, pageId, createdBy)),
 			CreatedAt = DateTime.UtcNow,
 			UpdatedAt = DateTime.UtcNow,
 			CreatedBy = createdBy,
@@ -69,7 +94,8 @@ public class PageVersionDomain
 			Id = Id.ToString(),
 			PageId = PageId.ToString(),
 			Version = Version,
-			Content = Content.ToBsonDocument(),
+			Content =
+				Content?.Select(item => item.ToDatabase()).ToBsonDocument(),
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy.ToString(),

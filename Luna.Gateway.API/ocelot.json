@@ -113,6 +113,40 @@
 			],
 			"DangerousAcceptAnyServerCertificateValidator": true,
 			"CookiesUpstream": true
+		},
+		{
+			"DownstreamPathTemplate": "/ws/v1/pageHub/negotiate",
+			"DownstreamScheme": "http",
+			"DownstreamHostAndPorts": [
+				{
+					"Host": "luna-luna.pages.api-1",
+					"Port": 8080
+				}
+			],
+			"UpstreamPathTemplate": "/ws/v1/pageHub/negotiate",
+			"UpstreamHttpMethod": [
+				"GET",
+				"POST",
+				"OPTIONS"
+			],
+			"DangerousAcceptAnyServerCertificateValidator": true,
+			"CookiesUpstream": true
+		},
+		{
+			"DownstreamPathTemplate": "/ws/v1/pageHub",
+			"DownstreamScheme": "ws",
+			"DownstreamHostAndPorts": [
+				{
+					"Host": "luna-luna.pages.api-1",
+					"Port": 8080
+				}
+			],
+			"UpstreamPathTemplate": "/ws/v1/pageHub",
+			"UpstreamHttpMethod": [
+				"GET"
+			],
+			"DangerousAcceptAnyServerCertificateValidator": true,
+			"CookiesUpstream": true
 		}
 	],
 	"GlobalConfiguration": {

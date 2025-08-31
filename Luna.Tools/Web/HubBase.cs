@@ -1,20 +1,34 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Primitives;
 
 namespace Luna.Tools.Web;
 
 public abstract class HubBase : Hub
 {
-	protected Guid? GetUserIdFromCookie()
+	protected Guid? UserId
 	{
-		return Context.GetHttpContext()?.Request.Cookies.TryGetValue("X-User-UserId", out string? userId) == true
-			? Guid.Parse(userId)
-			: null;
+		get
+		{
+			if (Context.GetHttpContext().Request.Headers.TryGetValue("X-User-UserId", out StringValues userIdHeader) &&
+			    Guid.TryParse(userIdHeader.FirstOrDefault(), out Guid userId))
+			{
+				return userId;
+			}
+			throw new UnauthorizedAccessException("UserId not found in request headers");
+		}
 	}
 
-	protected string? GetUserEmailFromCookie()
+	protected string? Email
 	{
-		return Context.GetHttpContext()?.Request.Cookies.TryGetValue("X-User-Email", out string? email) == true
-			? email
-			: null;
+		get
+		{
+			if (Context.GetHttpContext().Request.Headers.TryGetValue("X-User-Email", out StringValues emailHeader))
+			{
+				string? email = emailHeader.FirstOrDefault();
+				if (!string.IsNullOrEmpty(email))
+					return email;
+			}
+			throw new UnauthorizedAccessException("Email not found in request headers");
+		}
 	}
 }

@@ -1,9 +1,11 @@
-﻿using Luna.Pages.Models.Domain.Models;
+﻿using Luna.Pages.Models.Database.Models;
+using Luna.Pages.Models.Domain.Models;
 using Luna.Pages.Repositories.Repositories.PageVersion;
 using Luna.Pages.Repositories.Repositories.PageVersion.Command;
 using Luna.Pages.Services.Commands.PageContent;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 
 namespace Luna.Pages.Services.Handlers.Command.PageContent;
 
@@ -27,6 +29,10 @@ public class UpdatePageContentCommandHandler : IRequestHandler<UpdatePageContent
 
 		PageVersionDomain pageVersionDomain = PageVersionDomain.CreateFromBlank(id, request.PageId, request.OperationBy, request.UpdatePageContentBlank);
 
-		return await _pageVersionCommandRepository.CreatePageVersionAsync(pageVersionDomain.ToDatabase(), cancellationToken);
+		PageVersionDatabase databasePageVersion = pageVersionDomain.ToDatabase();
+
+		Console.WriteLine(databasePageVersion.ToJson());
+
+		return await _pageVersionCommandRepository.CreatePageVersionAsync(databasePageVersion, cancellationToken);
 	}
 }

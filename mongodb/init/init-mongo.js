@@ -27,14 +27,6 @@ db.createCollection('page_versions');
 db.page_versions.createIndex({ "page_id": 1 });
 db.page_versions.createIndex({ "page_id": 1, "version": 1 }, { unique: true });
 
-// Создание коллекции page_blocks
-db.createCollection('page_blocks');
-
-// Создание индексов для коллекции page_blocks
-db.page_blocks.createIndex({ "page_id": 1 });
-db.page_blocks.createIndex({ "parent_id": 1 });
-db.page_blocks.createIndex({ "page_id": 1, "index": 1 });
-
 // Создание коллекции page_comments
 db.createCollection('page_comments');
 
@@ -165,60 +157,6 @@ db.runCommand({
 				},
 				change_description: {
 					bsonType: ["string", "null"]
-				}
-			}
-		}
-	}
-});
-
-// Валидация для коллекции page_blocks
-db.runCommand({
-	collMod: "page_blocks",
-	validator: {
-		$jsonSchema: {
-			bsonType: "object",
-			required: ["_id", "page_id", "type", "created_by", "index"],
-			properties: {
-				_id: {
-					bsonType: "string",
-					description: "UUID блока"
-				},
-				page_id: {
-					bsonType: "string",
-					description: "UUID страницы"
-				},
-				type: {
-					bsonType: "string",
-					description: "Тип блока: paragraph, heading, list, code, image и т.д."
-				},
-				content: {
-					bsonType: "object"
-				},
-				created_at: {
-					bsonType: "date"
-				},
-				updated_at: {
-					bsonType: "date"
-				},
-				created_by: {
-					bsonType: "string",
-					description: "UUID пользователя, создавшего блок"
-				},
-				updated_by: {
-					bsonType: ["string", "null"],
-					description: "UUID пользователя, обновившего блок"
-				},
-				parent_id: {
-					bsonType: ["string", "null"],
-					description: "UUID родительского блока"
-				},
-				index: {
-					bsonType: "int",
-					description: "Порядок блоков"
-				},
-				properties: {
-					bsonType: "object",
-					description: "Дополнительные свойства блока"
 				}
 			}
 		}

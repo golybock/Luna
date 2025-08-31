@@ -37,15 +37,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-if (builder.Environment.IsProduction())
-{
-	builder.Logging.AddJsonConsole(options =>
-	{
-		options.IncludeScopes = true;
-		options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
-	});
-}
-
 JwtOptions jwtOptions = new JwtOptions(builder.Configuration);
 
 builder.Services

@@ -19,6 +19,7 @@ public class PageBlockDatabase
 	public string Type { get; set; } = null!;
 
 	[BsonElement("content")]
+	[BsonIgnoreIfNull]
 	public BsonDocument? Content { get; set; }
 
 	[BsonElement("created_at")]
@@ -45,5 +46,6 @@ public class PageBlockDatabase
 	public int Index { get; set; }
 
 	[BsonElement("properties")]
+	[BsonIgnoreIfNull]
 	public BsonDocument? Properties { get; set; }
 }

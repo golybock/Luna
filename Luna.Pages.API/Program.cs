@@ -1,15 +1,14 @@
 using Luna.Pages.API.Hubs;
 using Luna.Pages.Repositories.Repositories.Page.Command;
 using Luna.Pages.Repositories.Repositories.Page.Query;
-using Luna.Pages.Repositories.Repositories.PageComment;
+using Luna.Pages.Repositories.Repositories.PageVersion;
 using Luna.Pages.Repositories.Repositories.PageVersion.Command;
+using Luna.Pages.Repositories.Repositories.PageVersion.Query;
 using Luna.Pages.Services.Services;
 using Luna.Tools.Exception;
-using MediatR;
-using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
@@ -23,7 +22,8 @@ builder.Services.AddCors(options =>
 	{
 		policy.AllowAnyHeader()
 			.AllowAnyMethod()
-			.AllowAnyOrigin();
+			.AllowCredentials()
+			.SetIsOriginAllowed(origin => true);;
 	});
 });
 
@@ -61,6 +61,12 @@ builder.Services.AddScoped<IPageCommandRepository>(provider =>
 	return new PageCommandRepository(connectionString, databaseName, pageCollectionName, logger);
 });
 
+builder.Services.AddScoped<IPageVersionQueryRepository>(provider =>
+{
+	ILogger<PageVersionQueryRepository> logger = provider.GetRequiredService<ILogger<PageVersionQueryRepository>>();
+	return new PageVersionQueryRepository(connectionString, databaseName, pageVersionCollectionName, logger);
+});
+
 builder.Services.AddScoped<IPageVersionCommandRepository>(provider =>
 {
 	ILogger<PageVersionCommandRepository> logger = provider.GetRequiredService<ILogger<PageVersionCommandRepository>>();
@@ -78,15 +84,14 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors();
 
+app.UseWebSockets();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// app.UseEndpoints(endpoints =>
-// {
-// 	endpoints.MapHub<PageHub>("/page");
-// });
+app.MapHub<PageHub>("/ws/v1/pageHub");
 
 app.MapControllers();
 

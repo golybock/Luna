@@ -16,7 +16,7 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 
 	public async Task<PageDatabase?> GetPageByIdAsync(Guid pageId, CancellationToken cancellationToken = default)
 	{
-		FilterDefinition<PageDatabase> filter = Builders<PageDatabase>.Filter.Eq(nameof(PageDatabase.Id), pageId);
+		FilterDefinition<PageDatabase> filter = Builders<PageDatabase>.Filter.Eq("_id", pageId.ToString());
 
 		return await PagesCollection.Find<PageDatabase>(filter)
 			.FirstOrDefaultAsync(cancellationToken: cancellationToken);
