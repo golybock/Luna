@@ -7,7 +7,7 @@
 
 .content {
 	width: 100%;
-	padding: 16px;
+	height: 100%;
 }
 
 .navbar {
@@ -15,18 +15,24 @@
 	flex-direction: column;
 	justify-content: space-between;
 	width: 100%;
-	min-width: 240px;
+	min-width: 200px;
+	max-width: 200px;
 	padding: 16px;
-	max-width: 240px;
 	background: var(--secondary-container);
 	border-right: 2px solid var(--secondary-container);
 
 	&Header {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
+		height: 24px;
 	}
 
 	&Content {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		gap: 4px;
 	}
 
 	&Footer {
@@ -37,37 +43,30 @@
 	}
 }
 
-.menuItems{
+.menuItems {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	margin-top: 16px;
-	padding: 8px;
 	gap: 8px;
 
-	&FavoritePages{
+	&FavoritePages {
 
 	}
 
-
-	&PublicPages{
-
+	&PublicPages {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 }
 
 .createPageContainer {
 	display: flex;
-	flex-direction: column;
-	width: 100%;
-}
-
-.menuItem{
-	width: 100%;
-	display: flex;
 	flex-direction: row;
-	gap: 16px;
-	text-decoration: none;
-	cursor: pointer;
+	width: 100%;
+	justify-content: space-between;
+	align-items: center;
 }
 
 .profileBadge {
@@ -77,25 +76,19 @@
 	align-items: center;
 	text-decoration: none;
 	width: 100%;
-	max-width: calc(240px - 32px);
 	text-wrap: auto;
 	cursor: pointer;
-
-	&Image{
-		display: flex;
-		background-color: var(--teriary-container);
-		width: 32px;
-		height: 32px;
-		justify-content: center;
-		align-items: center;
-		border-radius: 5px;
-	}
 }
 
 .createIcon {
 	display: flex;
-	width: 32px;
-	height: 32px;
+	width: 24px;
+	height: 24px;
 	justify-content: center;
 	align-items: center;
+}
+
+.pagesLabel {
+	font-size: 14px !important;
+	opacity: 0.5;
 }

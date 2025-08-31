@@ -1,0 +1,26 @@
+﻿.card {
+	background-color: var(--secondary-container);
+	border-radius: 12px;
+	transition: all 0.2s ease;
+}
+
+.paddingSmall { padding: 12px; }
+.paddingMedium { padding: 20px; }
+.paddingLarge { padding: 32px; }
+.paddingNone { padding: 0; }
+
+.hover {
+	cursor: pointer;
+}
+
+.hover:hover {
+	background-color: var(--tertiary-container);
+}
+
+.elevated {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.bordered {
+	border: 1px solid var(--gray);
+}

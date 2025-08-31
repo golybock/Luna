@@ -1,0 +1,44 @@
+﻿.inputGroup {
+	display: flex;
+	flex-direction: column;
+}
+
+.wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.label {
+	display: flex;
+	flex-direction: row;
+	border-radius: 5px;
+	font-size: 16px !important;
+	background: var(--secondary-container);
+	color: var(--text);
+	border: 2px solid var(--secondary-container);
+	outline: none;
+	width: 100%;
+	font-family: "Noto Sans", system-ui;
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+}
+
+.withIcon {
+	margin-left: 30px !important;
+}
+
+.inputIcon {
+	position: absolute;
+	width: 24px;
+	height: 24px;
+	left: 0;
+	color: var(--text);
+	z-index: 1;
+}
+
+.input:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

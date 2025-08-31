@@ -1,0 +1,129 @@
+﻿.inputGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.label {
+	display: flex;
+	color: var(--text);
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.emojiButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 5px;
+	font-size: 24px;
+	background: transparent;
+	color: var(--text);
+	padding: 12px;
+	border: none;
+	outline: none;
+	width: 60px;
+	height: 60px;
+	font-family: "Noto Sans", system-ui;
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+	cursor: pointer;
+	position: relative;
+
+	&:focus,
+	&.focused {
+		border-color: var(--primary);
+	}
+
+	&.empty {
+		opacity: 0.3;
+
+		&:hover {
+			opacity: 1;
+			border-color: var(--primary);
+		}
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.placeholder {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	pointer-events: none;
+	font-size: 12px;
+	text-align: center;
+	white-space: nowrap;
+	background: transparent;
+	color: white;
+	padding: 4px 8px;
+	border-radius: 4px;
+	z-index: 10;
+
+	&.visible {
+		opacity: 1;
+	}
+}
+
+.dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 1000;
+	background: transparent;
+	//border: 2px solid var(--primary);
+	border: none;
+	border-radius: 8px;
+	padding: 12px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	width: 280px;
+	max-height: 200px;
+	overflow-y: auto;
+	margin-top: 4px;
+}
+
+.emojiGrid {
+	display: grid;
+	grid-template-columns: repeat(8, 1fr);
+	gap: 4px;
+}
+
+.emojiItem {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	font-size: 18px;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	border: none;
+	background: transparent;
+
+	&:hover {
+		background-color: var(--primary);
+		transform: scale(1.1);
+	}
+}
+
+.errorMessage {
+	display: flex;
+	color: var(--error);
+	font-size: 14px;
+	align-items: center;
+	gap: 4px;
+}

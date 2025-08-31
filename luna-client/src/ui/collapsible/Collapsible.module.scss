@@ -1,0 +1,40 @@
+﻿.collapsible {
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.trigger {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	cursor: pointer;
+	color: var(--text);
+	font-size: 16px;
+	font-weight: 500;
+	background-color: var(--secondary-container);
+	border: none;
+	width: 100%;
+	transition: all 0.2s ease;
+}
+
+.trigger:hover {
+	background-color: var(--tertiary-container);
+}
+
+.icon {
+	transition: transform 0.2s ease;
+}
+
+.iconOpen {
+	transform: rotate(90deg);
+}
+
+.content {
+	background-color: var(--secondary-container);
+	border-top: 1px solid var(--tertiary-container);
+}
+
+.contentInner {
+	padding: 16px 24px;
+}

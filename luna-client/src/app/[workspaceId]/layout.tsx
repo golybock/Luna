@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "./layout.module.scss";
 import Image from "next/image";
 import { IMenuItem } from "@/types/IMenuItem";
-import Link from "next/link";
 import { useActions } from "@/store/hooks/useActions";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -13,17 +12,20 @@ import { SettingsModal } from "@/components/modals/settings/SettingsModal";
 import { IPageLightView } from "@/types/page/pageLightView";
 import { pageHttpProvider } from "@/http/pageHttpProvider";
 import { useWorkspaces } from "@/store/hooks/useWorkspaces";
+import { MenuItem } from "@/components/ui/workspaceLayout/MenuItem";
+import { PageMenuItem } from "@/components/ui/workspaceLayout/PageMenuItem";
 import CreatePageBadge from "@/components/ui/createPageBadge/CreatePageBadge";
-import { PrimaryButton } from "@/components/ui/button/PrimaryButton";
 
 export default function MainLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
 
+	const [pages, setPages] = useState<IPageLightView[]>([]);
+
 	const { user } = useAuth();
 	const { setSelectedWorkspace } = useActions();
-	const router = useRouter();
 	const { openModal } = useModal();
-	const [pages, setPages] = useState<IPageLightView[]>([]);
 	const { selectedWorkspaceId } = useWorkspaces();
+
+	const router = useRouter();
 
 	const handleOnClickSettings = () => {
 		openModal(<SettingsModal/>)
@@ -51,7 +53,7 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 			{
 				name: "Home",
 				imagePath: "/icons/home_24.svg",
-				path: "/",
+				path: "/start",
 			},
 			{
 				name: "Inbox",
@@ -70,12 +72,12 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 			},
 			{
 				name: "Templates",
-				path: "/home/templates",
+				path: `/${selectedWorkspaceId}/templates`,
 				imagePath: "/icons/template_24.svg",
 			},
 			{
 				name: "Trash",
-				onClick: handleOnClickSettings,
+				path: `/${selectedWorkspaceId}/trash`,
 				imagePath: "/icons/trash_24.svg",
 			},
 		]
@@ -103,54 +105,22 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 				<div>
 					<div className={styles.navbarHeader}>
 						<div className={styles.profileBadge} onClick={handleOnClickSettings}>
-							<div className={styles.profileBadgeImage}>
-								<Image
-									src="/icons/accout_circle_24.svg"
-									alt="profileImage"
-									width={24}
-									height={24}
-								/>
-							</div>
-							<h4>{user?.user?.username ?? user?.email}</h4>
+							<h6>{user?.user?.username ?? user?.email}</h6>
 						</div>
 						<div className={styles.createIcon}>
 							<Image
 								src="/icons/edit_24.svg"
 								alt="edt"
-								width={24}
-								height={24}
+								width={16}
+								height={16}
 							/>
 						</div>
 					</div>
 					<div className={styles.navbarContent}>
 						<div className={styles.menuItems}>
-							{topMenuItems.map((item, i) => {
-								return item.path ? (
-									<Link className={styles.menuItem} key={i} href={item.path}>
-										{item.imagePath && (
-											<Image
-												src={item.imagePath}
-												width={24}
-												height={24}
-												alt={item.name}
-											/>
-										)}
-										<h6>{item.name}</h6>
-									</Link>
-								) : (
-									<div className={styles.menuItem} key={i} onClick={item.onClick}>
-										{item.imagePath && (
-											<Image
-												src={item.imagePath}
-												width={24}
-												height={24}
-												alt={item.name}
-											/>
-										)}
-										<h6>{item.name}</h6>
-									</div>
-								)
-							})}
+							{topMenuItems.map((item, i) => (
+								<MenuItem item={item} key={i}/>
+							))}
 						</div>
 						<div className={styles.menuItemsFavoritePages}>
 
@@ -159,62 +129,22 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 
 						</div>
 						<div className={styles.menuItemsPublicPages}>
-
-							{pagesMenuItems.length ?
-								(
-									<>
-										{pagesMenuItems.map((item, i) => (
-											<>
-												<Link className={styles.menuItem} key={i} href={item.path!}>
-													{item.emoji && (
-														<p>{item.emoji}</p>
-													)}
-													<h5>{item.name}</h5>
-												</Link>
-												<PrimaryButton onClick={async () => {
-													await pageHttpProvider.deletePage(item.path?.split("/")[2]!)
-												}}>
-													-
-												</PrimaryButton>
-											</>
-										))}
-									</>
-								)
-								: (
-									<div className={styles.createPageContainer}>
-										<h5>No pages, create one</h5>
-										<CreatePageBadge onCreated={() => setSelectedWorkspace(selectedWorkspaceId)}/>
-									</div>
-								)}
+							<div className={styles.createPageContainer}>
+								<h5 className={styles.pagesLabel}>
+									Your pages
+								</h5>
+								<CreatePageBadge/>
+							</div>
+							<div>
+								{pagesMenuItems.map((item, i) => (
+									<PageMenuItem item={item} key={i}/>
+								))}
+							</div>
 						</div>
 						<div className={styles.menuItems}>
-							{bottomMenuItems.map((item, i) => {
-								return item.path ? (
-									<Link className={styles.menuItem} key={i} href={item.path}>
-										{item.imagePath && (
-											<Image
-												src={item.imagePath}
-												width={24}
-												height={24}
-												alt={item.name}
-											/>
-										)}
-										<h6>{item.name}</h6>
-									</Link>
-								) : (
-									<div className={styles.menuItem} key={i} onClick={item.onClick}>
-										{item.imagePath && (
-											<Image
-												src={item.imagePath}
-												width={24}
-												height={24}
-												alt={item.name}
-											/>
-										)}
-										<h6>{item.name}</h6>
-									</div>
-								)
-							})}
+							{bottomMenuItems.map((item, i) => (
+								<MenuItem item={item} key={i}/>
+							))}
 						</div>
 					</div>
 				</div>

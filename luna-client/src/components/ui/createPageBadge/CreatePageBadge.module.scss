@@ -1,19 +1,17 @@
 ﻿.container {
 	display: flex;
 	flex-direction: row;
-	width: 100%;
-	gap: 16px;
-	background: var(--teriary-container);
-	padding: 8px;
+	gap: 4px;
 	border-radius: 8px;
-
-	input{
-		width: 100%;
-		border: solid 1px var(--black);
-	}
+	height: 24px;
+	width: 24px;
 
 	button{
-		width: 40px;
-		height: 35px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		height: 24px;
+		width: 24px;
 	}
 }

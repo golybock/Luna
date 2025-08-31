@@ -1,30 +1,69 @@
 'use client';
 
-import Link from 'next/link';
-import "../styles/global.scss"
+import styles from "../styles/global.scss"
+import Button from "@/ui/button/Button";
+import Card from "@/ui/card/Card";
 
 export default function LandingPage() {
 	return (
-		<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-			<div className="max-w-md w-full space-y-8 p-8">
-				<div className="text-center">
-					<h1 className="text-4xl font-bold text-gray-900 mb-4">
-						Добро пожаловать в Luna
-					</h1>
-					<p className="text-lg text-gray-600 mb-8">
-						Войдите в свой аккаунт или создайте новый
-					</p>
+		<div className={styles.container}>
+			{/* Header */}
+			<header className={styles.header}>
+				<div className={styles.nav}>
+					<div className={styles.logo}>
+						<h2>Luna</h2>
+					</div>
+					<div className={styles.navActions}>
+						<Button variant="ghost" size="medium">Войти</Button>
+					</div>
 				</div>
+			</header>
 
-				<div className="space-y-4">
-					<Link
-						href="/signIn"
-						className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-					>
-						Войти
-					</Link>
-				</div>
-			</div>
+			{/* Hero Section */}
+			<main className={styles.main}>
+				<section className={styles.hero}>
+					<div className={styles.heroContent}>
+						<h1>Ваш цифровой рабочий стол для заметок и проектов</h1>
+						<p>Создавайте, организуйте и делитесь знаниями с командой. Все в одном месте.</p>
+						<div className={styles.heroActions}>
+							<Button variant="primary" size="large">Начать бесплатно</Button>
+							<Button variant="secondary" size="large">Посмотреть демо</Button>
+						</div>
+					</div>
+					<div className={styles.heroImage}>
+						<Card elevated padding="large">
+							<div className={styles.mockupContent}>
+								<h3>📝 Мои заметки</h3>
+								<p>Быстрые заметки и идеи</p>
+							</div>
+						</Card>
+					</div>
+				</section>
+
+				{/* Features */}
+				<section className={styles.features}>
+					<h2>Возможности</h2>
+					<div className={styles.featuresGrid}>
+						<Card hover padding="large">
+							<h4>📄 Блочный редактор</h4>
+							<p>Создавайте контент с помощью блоков</p>
+						</Card>
+						<Card hover padding="large">
+							<h4>🚀 Быстрая работа</h4>
+							<p>Молниеносная скорость загрузки</p>
+						</Card>
+						<Card hover padding="large">
+							<h4>👥 Совместная работа</h4>
+							<p>Работайте в команде над проектами</p>
+						</Card>
+					</div>
+				</section>
+			</main>
+
+			{/* Footer */}
+			<footer className={styles.footer}>
+				<p>© 2024 Luna. Все права защищены.</p>
+			</footer>
 		</div>
 	);
 }

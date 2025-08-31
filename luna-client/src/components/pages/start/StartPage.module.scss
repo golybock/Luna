@@ -11,16 +11,29 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	gap: 16px;
 }
 
-.workspaceCard{
+.cards {
+	display: flex;
+	flex-direction: row;
+	gap: 16px;
+}
+
+.workspaceCard {
 	background: var(--secondary-container);
 	padding: 8px;
 	border-radius: 5px;
-	width: 100%;
+	width: 100px;
+	height: 100px;
 	cursor: pointer;
 
-	&:hover{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+
+	&:hover {
 		background: var(--teriary-container);
 	}
 }

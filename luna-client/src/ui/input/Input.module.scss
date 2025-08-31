@@ -1,0 +1,62 @@
+﻿.inputGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.label {
+	display: flex;
+	color: var(--text);
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.input {
+	display: flex;
+	flex-direction: row;
+	font-size: 16px;
+	border-radius: 5px;
+	background: var(--secondary-container);
+	color: var(--text);
+	padding: 6px;
+	border: 1px solid var(--primary-container);
+	outline: none;
+	width: 100%;
+	font-family: "Noto Sans", system-ui;
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+}
+
+.error {
+	border-bottom: 1px solid var(--error);
+}
+
+.withIcon {
+	margin-left: 40px !important;
+}
+
+.inputIcon {
+	position: absolute;
+	left: 12px;
+	color: var(--text);
+	z-index: 1;
+}
+
+.input:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.errorMessage {
+	display: flex;
+	color: var(--error);
+	font-size: 14px;
+	align-items: center;
+	gap: 4px;
+}

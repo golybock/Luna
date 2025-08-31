@@ -6,8 +6,9 @@ import styles from "./AuthPage.module.scss";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { GoogleAuthButton } from "@/components/ui/button/GoogleAuthButton";
-import { PrimaryButton } from "@/components/ui/button/PrimaryButton";
 import { useActions } from "@/store/hooks/useActions";
+import Button from "@/ui/button/Button";
+import Input from "@/ui/input/Input";
 
 export const AuthPage: React.FC = () => {
 
@@ -41,53 +42,58 @@ export const AuthPage: React.FC = () => {
 
 	const handleSignIn = async () => {
 		await signIn(email, code);
-		console.log("sign in");
 	}
 
 	return (
 		<div className={styles.container}>
 
-			<h2>{codeRequested ? "Send code" : "SignIn"}</h2>
-
 			<div className={styles.content}>
-				{error && (
-					<p className="error-message">
-						{error}
-					</p>
-				)}
 
-				<input
-					type="email"
-					value={email}
-					disabled={codeRequested}
-					onChange={(e) => setEmail(e.target.value)}
-					placeholder="Email"
-				/>
-
-				{codeRequested && (
-					<input
-						type="text"
-						maxLength={6}
-						value={code}
-						onChange={(e) => setCode(e.target.value)}
-						placeholder="Code"
-					/>
-				)}
-
-				<PrimaryButton
-					onClick={async () => {
-						codeRequested ? await handleSignIn() : await handleCodeRequested()
-					}}
-				>
-					<p>{codeRequested ? "SignIn" : "Send code"}</p>
-				</PrimaryButton>
+				<h3>Log in your account</h3>
 
 				<GoogleAuthButton onClick={handleGoogleClick}/>
 
-				<div className={styles.link}>
-					<Link href="/">
-						Back to main page
-					</Link>
+				<div className={styles.signInContent}>
+
+					{error && (
+						<p className="error-message">
+							{error}
+						</p>
+					)}
+
+					<Input
+						type="email"
+						label="Email"
+						value={email}
+						disabled={codeRequested}
+						onChange={(e) => setEmail(e.target.value)}
+						placeholder="Email"
+					/>
+
+					{codeRequested && (
+						<Input
+							type="text"
+							label="Code"
+							maxLength={6}
+							value={code}
+							onChange={(e) => setCode(e.target.value)}
+							placeholder="Code"
+						/>
+					)}
+
+					<Button variant="primary"
+							onClick={async () => {
+								codeRequested ? await handleSignIn() : await handleCodeRequested()
+							}}
+					>
+						<p>{codeRequested ? "SignIn" : "Send code"}</p>
+					</Button>
+
+					<div className={styles.link}>
+						<Link href="/">
+							Back to main page
+						</Link>
+					</div>
 				</div>
 			</div>
 		</div>

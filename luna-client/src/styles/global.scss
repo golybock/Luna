@@ -1,7 +1,6 @@
 ﻿@import "./variables";
 @tailwind utilities;
 
-// Ваши глобальные SCSS‑правила
 body {
 	display: flex;
 	flex-direction: column;
@@ -16,6 +15,7 @@ body {
 	--black: black;
 	--white: white;
 	--danger: red;
+
 	--gray: #928DAB;
 	--steel-gray: #1F1C2C;
 
@@ -24,7 +24,7 @@ body {
 	--secondary-text: #777777;
 
 	/*main dark theme*/
-	--primary: #065A60;
+	--primary: #2383e2;
 	--secondary: #4D194D;
 	--teriary: #272640;
 
@@ -35,10 +35,10 @@ body {
 	/*container*/
 	--primary-container: #131313;
 	--secondary-container: #222222;
-	--teriary-container: var(--steel-gray);
+	--teriary-container: #1F1C2C;
 
 	--primary-light: #006466;
-	--primary-variant: #0b525b;
+	--primary-variant: #243388;
 	--primary-dark: #144552;
 	--primary-variant-dark: #1b3a4b;
 	--primary-variant-darker: #212f45;
@@ -49,20 +49,7 @@ body {
 		margin: 0;
 		font-family: "noto-sans", system-ui;
 	}
-
-	input {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: nowrap;
-		border-radius: 5px;
-		font-size: 20px;
-		background: var(--secondary-container);
-		color: var(--text);
-		padding: 4px;
-		border: var(--secondary-container) 2px solid;
-		outline: none;
-	}
-
+	
 	.input-label {
 		display: flex;
 		color: var(--secondary-text);
@@ -106,7 +93,7 @@ body {
 
 	p, span {
 		display: flex;
-		color: var(--secondary-text);
+		color: var(--white);
 		font-size: 16px;
 	}
 
@@ -146,7 +133,7 @@ body {
 	// container on mobile
 	@media screen and (max-width: $desktop-width){
 		--modal-container-width: 100%;
-		--modal-container-height: calc(100% - 56px); // не работает через $header-height
+		--modal-container-height: calc(100% - 56px);
 		--modal-container-border-radius: 24px 24px 0 0;
 		--modal-container-top: unset;
 		--modal-container-padding-top: 16px;
