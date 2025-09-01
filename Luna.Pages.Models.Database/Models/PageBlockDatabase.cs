@@ -8,6 +8,7 @@ namespace Luna.Pages.Models.Database.Models;
 public class PageBlockDatabase
 {
 	[BsonId]
+	[BsonElement("_id")]
 	[BsonRepresentation(BsonType.String)]
 	public Guid Id { get; set; }
 
@@ -20,7 +21,7 @@ public class PageBlockDatabase
 
 	[BsonElement("content")]
 	[BsonIgnoreIfNull]
-	public BsonDocument? Content { get; set; }
+	public BsonValue? Content { get; set; }
 
 	[BsonElement("created_at")]
 	[BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
@@ -47,5 +48,5 @@ public class PageBlockDatabase
 
 	[BsonElement("properties")]
 	[BsonIgnoreIfNull]
-	public BsonDocument? Properties { get; set; }
+	public BsonValue? Properties { get; set; }
 }

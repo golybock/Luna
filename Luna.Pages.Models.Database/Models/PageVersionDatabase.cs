@@ -8,6 +8,7 @@ namespace Luna.Pages.Models.Database.Models;
 public class PageVersionDatabase
 {
 	[BsonId]
+	[BsonElement("_id")]
 	[BsonRepresentation(BsonType.String)]
 	public string Id { get; set; }
 
@@ -19,7 +20,8 @@ public class PageVersionDatabase
 	public int Version  { get; set; }
 
 	[BsonElement("content")]
-	public BsonDocument? Content { get; set; }
+	[BsonIgnoreIfNull]
+	public BsonArray? Content { get; set; }
 
 	[BsonElement("created_at")]
 	[BsonDateTimeOptions(Kind = DateTimeKind.Utc)]

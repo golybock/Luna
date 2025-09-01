@@ -28,9 +28,6 @@ public class CreatePageCommandHandler : PageCommandHandlerBase, IRequestHandler<
 		PageDomain pageDomain = PageDomain.FromBlank(pageId, request.OperationBy, request.CreatePageBlank);
 		PageVersionDomain pageVersionDomain = PageVersionDomain.CreateInitial(versionId, pageId, request.OperationBy);
 
-		Console.WriteLine("Insert page:");
-		Console.WriteLine(pageDomain.ToDatabase().ToBsonDocument().ToJson());
-
 		await PageCommandRepository.CreatePageAsync(pageDomain.ToDatabase(), cancellationToken);
 		await _pageVersionCommandRepository.CreatePageVersionAsync(pageVersionDomain.ToDatabase(), cancellationToken);
 

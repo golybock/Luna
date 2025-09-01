@@ -31,8 +31,6 @@ public class UpdatePageContentCommandHandler : IRequestHandler<UpdatePageContent
 
 		PageVersionDatabase databasePageVersion = pageVersionDomain.ToDatabase();
 
-		Console.WriteLine(databasePageVersion.ToJson());
-
 		return await _pageVersionCommandRepository.CreatePageVersionAsync(databasePageVersion, cancellationToken);
 	}
 }

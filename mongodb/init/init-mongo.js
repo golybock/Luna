@@ -23,10 +23,6 @@ db.page.createIndex({ "title": "text", "description": "text" });
 // Создание коллекции page_versions
 db.createCollection('page_versions');
 
-// Создание индексов для коллекции page_versions
-db.page_versions.createIndex({ "page_id": 1 });
-db.page_versions.createIndex({ "page_id": 1, "version": 1 }, { unique: true });
-
 // Создание коллекции page_comments
 db.createCollection('page_comments');
 
@@ -146,7 +142,7 @@ db.runCommand({
 					description: "Номер версии"
 				},
 				content: {
-					bsonType: "object"
+					bsonType: "array"
 				},
 				created_at: {
 					bsonType: "date"

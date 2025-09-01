@@ -33,7 +33,7 @@ public class PageVersionQueryRepository : PageVersionRepositoryBase, IPageVersio
 
 		return await PageVersionsCollection
 			.Find(filter)
-			.SortByDescending(item => item.Version)
+			.SortByDescending(item => item.UpdatedAt)
 			.FirstOrDefaultAsync(cancellationToken);
 	}
 

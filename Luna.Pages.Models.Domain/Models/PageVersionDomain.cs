@@ -32,29 +32,6 @@ public class PageVersionDomain
 		};
 	}
 
-	private static object? ExtractBsonValue(BsonDocument document, string fieldName)
-	{
-		if (!document.Contains(fieldName))
-			return null;
-
-		var bsonValue = document[fieldName];
-
-		// Проверяем на null
-		if (bsonValue.IsBsonNull)
-			return null;
-
-		// Проверяем на специальный маркер C# null
-		if (bsonValue.IsBsonDocument)
-		{
-			var bsonDoc = bsonValue.AsBsonDocument;
-			if (bsonDoc.Contains("_csharpnull") && bsonDoc["_csharpnull"].AsBoolean == true)
-				return null;
-			return bsonDoc;
-		}
-
-		return bsonValue;
-	}
-
 	public static PageVersionDomain? FromDatabase(PageVersionDatabase pageVersionDatabase)
 	{
 		return new PageVersionDomain()
@@ -62,8 +39,24 @@ public class PageVersionDomain
 			Id = Guid.Parse(pageVersionDatabase.Id),
 			PageId = Guid.Parse(pageVersionDatabase.PageId),
 			Version = pageVersionDatabase.Version,
-			// Исправление: преобразуем BsonArray напрямую в PageBlockDomain
-			Content = pageVersionDatabase.Content?.Select(bsonValue => new PageBlockDomain(){}),
+			Content = pageVersionDatabase.Content?.Select(bsonValue => new PageBlockDomain()
+			{
+				Id = Guid.Parse(bsonValue["_id"].AsString),
+				PageId = Guid.Parse(bsonValue["page_id"].AsString),
+				Index = bsonValue["index"].AsInt32,
+				Content = JsonDocument.Parse(bsonValue["content"].AsBsonDocument.ToJson()),
+				CreatedAt = bsonValue["created_at"].AsUniversalTime,
+				UpdatedAt = bsonValue["updated_at"].AsUniversalTime,
+				CreatedBy = Guid.Parse(bsonValue["created_by"].AsString),
+				ParentId = bsonValue.AsBsonDocument.TryGetValue("parent_id", out var parent_id) && parent_id.IsBsonDocument
+					? Guid.Parse(parent_id.AsString)
+					: null,
+				Properties = bsonValue.AsBsonDocument.TryGetValue("properties", out var prop) && prop.IsBsonDocument
+					? prop.AsBsonDocument
+					: null,
+				Type = bsonValue["type"].AsString,
+				UpdatedBy = Guid.Parse(bsonValue["updated_by"].AsString),
+			}),
 			CreatedAt = pageVersionDatabase.CreatedAt,
 			UpdatedAt = pageVersionDatabase.UpdatedAt,
 			ChangeDescription = pageVersionDatabase.ChangeDescription,
@@ -94,8 +87,7 @@ public class PageVersionDomain
 			Id = Id.ToString(),
 			PageId = PageId.ToString(),
 			Version = Version,
-			Content =
-				Content?.Select(item => item.ToDatabase()).ToBsonDocument(),
+			Content = new BsonArray(Content?.Select(item => item.ToDatabase().ToBsonDocument()).ToList()),
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy.ToString(),

@@ -29,7 +29,7 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 	const { openModal } = useModal();
 
 	const [emoji, setEmoji] = useState<string>();
-	const [blocks, setBlocks] = useState<EditorBlock[]>(page?.pageVersionView?.content ?? []);
+	const [blocks, setBlocks] = useState<EditorBlock[]>([]);
 
 	useEffect(() => {
 		let isActive = true;
@@ -37,6 +37,7 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 		const handlePageData = (data: PageFullView) => {
 			if (!isActive) return;
 			setPage(data);
+			setBlocks(data?.pageVersionView?.content ?? []);
 			setEmoji(data.page.emoji)
 		};
 

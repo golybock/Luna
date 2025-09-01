@@ -13,13 +13,10 @@ namespace Luna.Pages.Services.Handlers.Query.PageContent;
 public class GetPageBlocksQueryHandler : IRequestHandler<GetPageBlocksQuery, IEnumerable<PageBlockDomain>>
 {
 	private readonly IPageVersionQueryRepository _pageVersionQueryRepository;
-	private readonly ILogger _logger;
 
-	public GetPageBlocksQueryHandler(IPageVersionQueryRepository pageVersionRepository,
-		ILogger logger)
+	public GetPageBlocksQueryHandler(IPageVersionQueryRepository pageVersionRepository)
 	{
 		_pageVersionQueryRepository = pageVersionRepository;
-		_logger = logger;
 	}
 
 	public async Task<IEnumerable<PageBlockDomain>> Handle(GetPageBlocksQuery request, CancellationToken cancellationToken)

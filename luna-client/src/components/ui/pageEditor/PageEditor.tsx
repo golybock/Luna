@@ -12,6 +12,7 @@ interface PageEditorProps {
 }
 
 export const PageEditor: React.FC<PageEditorProps> = ({ value, onChange, className }) => {
+
 	const {
 		blocks,
 		BlockTypes,
