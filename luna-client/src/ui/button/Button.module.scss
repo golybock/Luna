@@ -30,9 +30,8 @@
 }
 
 .secondary {
-	background-color: var(--secondary-container);
+	background-color: var(--dark-gray);
 	color: var(--text);
-	border: 1px solid var(--gray);
 }
 
 .secondary:hover:not(:disabled) {

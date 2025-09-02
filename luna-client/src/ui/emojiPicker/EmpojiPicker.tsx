@@ -75,6 +75,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 	};
 
 	const buttonClasses = [
+		className,
 		styles.emojiButton,
 		isOpen && styles.emojiButtonFocus,
 		(!value && isHovered) && styles.emojiButtonHover,

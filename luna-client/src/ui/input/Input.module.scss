@@ -25,9 +25,10 @@
 	background: var(--secondary-container);
 	color: var(--text);
 	padding: 6px;
-	border: 1px solid var(--primary-container);
+	border: none;
 	outline: none;
 	width: 100%;
+	font-weight: bold;
 	font-family: "Noto Sans", system-ui;
 	transition: all 0.2s ease;
 	box-sizing: border-box;

@@ -22,6 +22,7 @@ body {
 	/*text*/
 	--text: var(--gray);
 	--secondary-text: #777777;
+	--dark-gray: #595959;
 
 	/*main dark theme*/
 	--primary: #2383e2;
@@ -93,8 +94,8 @@ body {
 
 	p, span {
 		display: flex;
-		color: var(--white);
-		font-size: 16px;
+		color: var(--text);
+		font-size: 14px;
 	}
 
 	a{
