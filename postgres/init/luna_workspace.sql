@@ -9,8 +9,7 @@ create table workspace
     owner_id           uuid             not null,
     icon               text,
     description        text,
-    visibility         text             NOT NULL DEFAULT 'private', -- private, team, public
-    default_permission text             not null default 'view',    -- view, comment, edit
+    default_permission text             not null default 'view',
     settings           jsonb                     default '{}',
     deleted_at         timestamptz
 );
@@ -20,8 +19,7 @@ create table workspace_users
     id           uuid primary key not null,
     user_id      uuid             not null,
     workspace_id uuid             not null references workspace (id) on delete cascade,
-    roles        text[]           not null default '{member}',
-    permissions  TEXT[]           NOT NULL DEFAULT '{view}', -- view, comment, edit, admin
+    permissions  TEXT[]           NOT NULL,
     created_at   timestamptz      not null default now(),
     updated_at   timestamptz      not null default now(),
     invited_by   uuid,

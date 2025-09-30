@@ -7,7 +7,7 @@
         environment:
             POSTGRES_USER: system
             POSTGRES_PASSWORD: system
-            POSTGRES_MULTIPLE_DATABASES: "luna_database, luna_users, luna_auth, luna_workspaces, luna_files, luna_activity, luna_templates, luna_tags, luna_graphs"
+            POSTGRES_MULTIPLE_DATABASES: "luna_database, luna_users, luna_auth, luna_workspaces, luna_activity, luna_pages"
         volumes:
             - postgres_data:/var/lib/postgresql/data
             - ./postgres/init:/docker-entrypoint-initdb.d # Скрипты для инициализации
@@ -58,6 +58,49 @@
             - "6379:6379"
         volumes:
             - redis_data:/data
+        networks:
+            - backend
+
+    elasticsearch:
+        image: elasticsearch:8.11.0
+        container_name: elasticsearch
+        restart: on-failure
+        environment:
+            - discovery.type=single-node
+            - xpack.security.enabled=false
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ports:
+            - "9200:9200"
+            - "9300:9300"
+        volumes:
+            - elasticsearch_data:/usr/share/elasticsearch/data
+        networks:
+            - backend
+
+    kafka:
+        image: confluentinc/cp-kafka:7.4.0
+        container_name: kafka
+        restart: on-failure
+        environment:
+            KAFKA_NODE_ID: 1
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+            KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+            KAFKA_METRICS_REPORTERS: ''
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_PROCESS_ROLES: 'broker,controller'
+            KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+            KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+            KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+            KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+            KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+            CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+        ports:
+            - "9092:9092"
+        volumes:
+            - kafka_data:/tmp/kraft-combined-logs
         networks:
             - backend
 
@@ -170,4 +213,7 @@ volumes:
         driver: local
     redis_data:
         driver: local
-
+    elasticsearch_data:
+        driver: local
+    kafka_data:
+        driver: local
