@@ -1,10 +1,11 @@
 ﻿using Luna.Workspaces.Models.Blank.Models;
+using Luna.Workspaces.Models.Database.Models;
 
 namespace Luna.Workspaces.Repositories.Repositories.InviteRepository;
 
 public interface IInviteRepository
 {
-	Task CreateInviteAsync(Guid inviteId, WorkspaceUserBlank workspaceUserBlank);
+	Task CreateInviteAsync(Guid inviteId, WorkspaceUserCache workspaceUserCache);
 
 	Task<WorkspaceUserBlank?> GetInviteByidAsync(Guid inviteId);
 

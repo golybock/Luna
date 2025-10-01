@@ -28,6 +28,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Luna.Workspaces.Models.Blank\Luna.Workspaces.Models.Blank.csproj" />
       <ProjectReference Include="..\Luna.Workspaces.Models.Database\Luna.Workspaces.Models.Database.csproj" />
+      <ProjectReference Include="..\Luna.Workspaces.Models.Domain\Luna.Workspaces.Models.Domain.csproj" />
     </ItemGroup>
 
 </Project>

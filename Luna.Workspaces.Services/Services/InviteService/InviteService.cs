@@ -1,4 +1,5 @@
 ﻿using Luna.Workspaces.Models.Blank.Models;
+using Luna.Workspaces.Models.Database.Models;
 using Luna.Workspaces.Repositories.Repositories.InviteRepository;
 
 namespace Luna.Workspaces.Services.Services.InviteService;
@@ -12,26 +13,21 @@ public class InviteService : IInviteService
 		_inviteRepository = inviteRepository;
 	}
 
-	// todo добавить хранение operationBy
-	public async Task<Guid> CreateInviteAsync(Guid operationBy, WorkspaceUserBlank workspaceUserBlank)
+	public async Task<string> CreateInviteAsync(WorkspaceUserBlank workspaceUserBlank, Guid operationBy)
 	{
 		Guid inviteId = Guid.NewGuid();
 
-		await _inviteRepository.CreateInviteAsync(inviteId, workspaceUserBlank);
-
-		return inviteId;
-	}
-
-	public async Task<WorkspaceUserBlank?> GetInviteByidAsync(Guid operationBy, Guid inviteId)
-	{
-		WorkspaceUserBlank? invite = await _inviteRepository.GetInviteByidAsync(inviteId);
-
-		if (invite == null || invite.UserId != operationBy)
+		WorkspaceUserCache workspaceUserCache = new WorkspaceUserCache()
 		{
-			return null;
-		}
+			InvitedBy = operationBy,
+			Permissions = workspaceUserBlank.Permissions,
+			UserId = workspaceUserBlank.UserId,
+			WorkspaceId = workspaceUserBlank.WorkspaceId
+		};
 
-		return invite;
+		await _inviteRepository.CreateInviteAsync(inviteId, workspaceUserCache);
+
+		return inviteId.ToString();
 	}
 
 	public async Task DeleteInviteAsync(Guid inviteId)

@@ -1,16 +1,20 @@
 ﻿using Luna.Workspaces.Models.Database.Models;
 using Luna.Workspaces.Repositories.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
 
 public class WorkspaceRepository : IWorkspaceRepository
 {
 	private readonly LunaWorkspacesContext _context;
+	private readonly ILogger _logger;
 
-	public WorkspaceRepository(LunaWorkspacesContext context)
+	public WorkspaceRepository(LunaWorkspacesContext context, ILogger logger)
 	{
 		_context = context;
+		_logger = logger;
 	}
 
 	public async Task<WorkspaceDatabase?> GetWorkspaceAsync(Guid id)
@@ -24,7 +28,8 @@ public class WorkspaceRepository : IWorkspaceRepository
 	{
 		return await _context.Workspaces
 			.Include(workspace => workspace.WorkspaceUsers)
-			.Where(workspace => workspace.OwnerId == userId || workspace.WorkspaceUsers.Any(item => item.UserId == userId))
+			.Where(workspace =>
+				workspace.OwnerId == userId || workspace.WorkspaceUsers.Any(item => item.UserId == userId))
 			.ToListAsync();
 	}
 
@@ -48,7 +53,6 @@ public class WorkspaceRepository : IWorkspaceRepository
 		workspace.Description = workspaceDatabase.Description;
 		workspace.OwnerId = workspace.OwnerId;
 		workspace.Icon = workspaceDatabase.Icon;
-		workspace.Visibility = workspaceDatabase.Visibility;
 		workspace.DefaultPermission = workspaceDatabase.DefaultPermission;
 		workspace.Settings = workspaceDatabase.Settings;
 		workspace.DeletedAt = workspaceDatabase.DeletedAt;
@@ -74,6 +78,12 @@ public class WorkspaceRepository : IWorkspaceRepository
 		return await _context.WorkspaceUsers.FirstOrDefaultAsync(user => user.Id == workspaceUserId);
 	}
 
+	public async Task<WorkspaceUserDatabase?> GetWorkspaceUserByIdsAsync(Guid workspaceId, Guid userId)
+	{
+		return await _context.WorkspaceUsers.FirstOrDefaultAsync(user =>
+			user.WorkspaceId == workspaceId && user.UserId == userId);
+	}
+
 	public async Task CreateWorkspaceUserAsync(WorkspaceUserDatabase workspaceUserDatabase)
 	{
 		await _context.WorkspaceUsers.AddAsync(workspaceUserDatabase);
@@ -90,7 +100,27 @@ public class WorkspaceRepository : IWorkspaceRepository
 			throw new Exception("Workspace user not found");
 		}
 
-		workspaceUser.Roles = workspaceUserDatabase.Roles;
+		workspaceUser.Permissions = workspaceUserDatabase.Permissions;
+		workspaceUser.AcceptedAt = workspaceUserDatabase.AcceptedAt;
+
+		_context.WorkspaceUsers.Update(workspaceUser);
+		await _context.SaveChangesAsync();
+	}
+
+	public async Task UpdateWorkspaceUserByIdsAsync(Guid workspaceId, Guid userId,
+		WorkspaceUserDatabase workspaceUserDatabase)
+	{
+		WorkspaceUserDatabase? workspaceUser = await _context.WorkspaceUsers
+			.FirstOrDefaultAsync(workspaceUser =>
+				workspaceUser.WorkspaceId == workspaceId &&
+				workspaceUser.UserId == userId
+			);
+
+		if (workspaceUser == null)
+		{
+			throw new Exception("Workspace user not found");
+		}
+
 		workspaceUser.Permissions = workspaceUserDatabase.Permissions;
 		workspaceUser.AcceptedAt = workspaceUserDatabase.AcceptedAt;
 
@@ -111,4 +141,151 @@ public class WorkspaceRepository : IWorkspaceRepository
 		_context.WorkspaceUsers.Remove(workspaceUser);
 		await _context.SaveChangesAsync();
 	}
+
+	public async Task DeleteWorkspaceUserAsync(Guid workspaceId, Guid userId)
+	{
+		WorkspaceUserDatabase? workspaceUser = await _context.WorkspaceUsers
+			.FirstOrDefaultAsync(workspaceUser =>
+				workspaceUser.WorkspaceId == workspaceId &&
+				workspaceUser.UserId == userId
+			);
+
+		if (workspaceUser == null)
+		{
+			throw new Exception("Workspace user not found");
+		}
+
+		_context.WorkspaceUsers.Remove(workspaceUser);
+		await _context.SaveChangesAsync();
+	}
+
+	public async Task DeleteWorkspaceUserByWorkspaceIdAsync(Guid workspaceId)
+	{
+		IEnumerable<WorkspaceUserDatabase> workspaceUsers = await _context.WorkspaceUsers
+			.Where(workspaceUser => workspaceUser.WorkspaceId == workspaceId)
+			.ToListAsync();
+
+		if (!workspaceUsers.Any())
+		{
+			throw new Exception("Workspace users not found");
+		}
+
+		_context.WorkspaceUsers.RemoveRange(workspaceUsers);
+		await _context.SaveChangesAsync();
+	}
+
+	public async Task DeleteWorkspaceUserByUserIdAsync(Guid userId)
+	{
+		IEnumerable<WorkspaceUserDatabase> workspaceUsers = await _context.WorkspaceUsers
+			.Where(workspaceUser => workspaceUser.UserId == userId)
+			.ToListAsync();
+
+		if (!workspaceUsers.Any())
+		{
+			throw new Exception("Workspace users not found");
+		}
+
+		_context.WorkspaceUsers.RemoveRange(workspaceUsers);
+		await _context.SaveChangesAsync();
+	}
+
+	#region Транзакционные методы
+
+	public async Task CreateWorkspaceUserWithTransactionAsync(
+		WorkspaceUserDatabase workspaceUserDatabase,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => CreateWorkspaceUserAsync(workspaceUserDatabase),
+			additionalAction
+		);
+	}
+
+	public async Task UpdateWorkspaceUserWithTransactionAsync(
+		Guid workspaceUserId,
+		WorkspaceUserDatabase workspaceUserDatabase,
+		Func<Task> additionalAction)
+	{
+		await ExecuteInTransactionAsync(
+			() => UpdateWorkspaceUserAsync(workspaceUserId, workspaceUserDatabase),
+			additionalAction
+		);
+	}
+
+	public async Task UpdateWorkspaceUserByIdsWithTransactionAsync(
+		Guid workspaceId,
+		Guid userId,
+		WorkspaceUserDatabase workspaceUserDatabase,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => UpdateWorkspaceUserByIdsAsync(workspaceId, userId, workspaceUserDatabase),
+			additionalAction
+		);
+	}
+
+	public async Task DeleteWorkspaceUserWithTransactionAsync(
+		Guid workspaceUserId,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => DeleteWorkspaceUserAsync(workspaceUserId),
+			additionalAction
+		);
+	}
+
+	public async Task DeleteWorkspaceUserWithTransactionAsync(
+		Guid workspaceId,
+		Guid userId,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => DeleteWorkspaceUserAsync(workspaceId, userId),
+			additionalAction
+		);
+	}
+
+	public async Task CreateWorkspaceWithTransactionAsync(
+		WorkspaceDatabase workspaceDatabase,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => CreateWorkspaceAsync(workspaceDatabase),
+			additionalAction
+		);
+	}
+
+	public async Task DeleteWorkspaceWithTransactionAsync(
+		Guid workspaceId,
+		Func<Task> additionalAction
+	)
+	{
+		await ExecuteInTransactionAsync(
+			() => DeleteWorkspaceAsync(workspaceId),
+			additionalAction
+		);
+	}
+
+	private async Task ExecuteInTransactionAsync(Func<Task> databaseAction, Func<Task>? additionalAction = null)
+	{
+		await using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync();
+		try
+		{
+			await databaseAction();
+			if (additionalAction != null) await additionalAction();
+			await transaction.CommitAsync();
+		}
+		catch
+		{
+			await transaction.RollbackAsync();
+			throw;
+		}
+	}
+
+	#endregion
 }

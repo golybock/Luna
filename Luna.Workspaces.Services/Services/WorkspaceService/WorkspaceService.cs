@@ -1,4 +1,6 @@
-﻿using Luna.Users.gRPC.Client.Services;
+﻿using Luna.Tools.SharedModels.Models;
+using Luna.Tools.SharedModels.Models.Exceptions;
+using Luna.Users.gRPC.Client.Services;
 using Luna.Users.Models.Domain.Models;
 using Luna.Users.Models.Extensions.Extensions;
 using Luna.Workspaces.Domain.Models;
@@ -6,54 +8,69 @@ using Luna.Workspaces.Models.Blank.Models;
 using Luna.Workspaces.Models.Database.Models;
 using Luna.Workspaces.Models.Extensions.Extensions;
 using Luna.Workspaces.Models.View.Models;
+using Luna.Workspaces.Repositories.Repositories.InviteRepository;
 using Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
+using Luna.Workspaces.Services.Services.PermissionEventService;
+using Luna.Workspaces.Services.Services.WorkspacePermissionService;
 
 namespace Luna.Workspaces.Services.Services.WorkspaceService;
 
 public class WorkspaceService : IWorkspaceService
 {
-	private readonly IWorkspaceRepository _repository;
+	private readonly IWorkspaceRepository _workspaceRepository;
+	private readonly InviteRepository _inviteRepository;
 	private readonly IUserServiceClient _userServiceClient;
+	private readonly IPermissionEventService _permissionEventService;
+	private readonly IWorkspacePermissionService _workspacePermissionService;
 
-	public WorkspaceService(IWorkspaceRepository repository, IUserServiceClient userServiceClient)
+	public WorkspaceService(
+		IWorkspaceRepository workspaceRepository,
+		IUserServiceClient userServiceClient,
+		IPermissionEventService permissionEventService,
+		IWorkspacePermissionService workspacePermissionService,
+		InviteRepository inviteRepository
+	)
 	{
-		_repository = repository;
+		_workspaceRepository = workspaceRepository;
 		_userServiceClient = userServiceClient;
+		_permissionEventService = permissionEventService;
+		_workspacePermissionService = workspacePermissionService;
+		_inviteRepository = inviteRepository;
 	}
 
-	public async Task<WorkspaceView?> GetWorkspaceAsync(Guid operationBy, Guid id)
+	public async Task<WorkspaceView?> GetWorkspaceAsync(Guid workspaceId, Guid operationBy)
 	{
-		WorkspaceDatabase? workspaceDatabase = await _repository.GetWorkspaceAsync(id);
+		await CheckPermissionAsync(workspaceId, operationBy, WorkspacePermissions.View);
 
-		if (workspaceDatabase == null || workspaceDatabase.OwnerId != operationBy)
-		{
-			return null;
-		}
+		WorkspaceDatabase? workspaceDatabase = await _workspaceRepository.GetWorkspaceAsync(workspaceId);
 
-		return workspaceDatabase.ToDomain().ToView();
+		return workspaceDatabase?.ToDomain().ToView();
 	}
 
-	public async Task<IEnumerable<WorkspaceView>> GetUserAvailableWorkspacesAsync(Guid userId)
+	public async Task<IEnumerable<WorkspaceView>> GetAvailableWorkspacesAsync(Guid operationBy)
 	{
-		IEnumerable<WorkspaceDatabase> workspaces = await _repository.GetUserAvailableWorkspacesAsync(userId);
+		IEnumerable<WorkspaceDatabase> workspaces =
+			await _workspaceRepository.GetUserAvailableWorkspacesAsync(operationBy);
 
 		return workspaces.Select(w => w.ToDomain().ToView());
 	}
 
-	public async Task<WorkspaceDetailedView?> GetWorkspaceDetailedViewAsync(Guid operationBy, Guid id)
+	public async Task<WorkspaceDetailedView?> GetWorkspaceDetailedViewAsync(Guid workspaceId, Guid operationBy)
 	{
-		WorkspaceDatabase? workspaceDatabase = await _repository.GetWorkspaceAsync(id);
+		await CheckPermissionAsync(workspaceId, operationBy, WorkspacePermissions.View);
 
-		if (workspaceDatabase == null || workspaceDatabase.OwnerId != operationBy)
+		WorkspaceDatabase? workspaceDatabase = await _workspaceRepository.GetWorkspaceAsync(workspaceId);
+
+		if (workspaceDatabase == null)
 		{
-			return null;
+			throw new NotFoundException("Workspace not found");
 		}
 
 		List<Guid> userIds = workspaceDatabase.WorkspaceUsers.Select(w => w.UserId).ToList();
-		userIds.Add(workspaceDatabase.OwnerId);
 
 		IEnumerable<UserDomain> users;
 
+		// попытка загрузить пользователей с другого сервиса
 		try
 		{
 			users = await _userServiceClient.GetUsersByIdsAsync(userIds);
@@ -61,165 +78,162 @@ public class WorkspaceService : IWorkspaceService
 		catch (Exception e)
 		{
 			users = new List<UserDomain>();
-			Console.WriteLine(e);
 		}
 
+		// собираем полную модель
 		List<WorkspaceUserDetailedView> workspaceUsersDetailed = workspaceDatabase.WorkspaceUsers.Select(item =>
 		{
-			return item.ToDetailedView(
-				users.FirstOrDefault(u => u.Id == item.UserId)?.ToView()
-			);
+			UserDomain? userDomain = users.FirstOrDefault(u => u.Id == item.UserId);
+			return item.ToDetailedView(userDomain?.ToView());
 		}).ToList();
-
-		workspaceUsersDetailed.Add(
-			new WorkspaceUserDetailedView()
-			{
-				UserId = workspaceDatabase.OwnerId,
-				User = users.FirstOrDefault(u => u.Id == workspaceDatabase.OwnerId)?.ToView(),
-				Permissions = ["all"],
-				Roles = ["admin"],
-				WorkspaceId = workspaceDatabase.Id,
-			}
-		);
 
 		return workspaceDatabase.ToDetailedView(workspaceUsersDetailed);
 	}
 
-	public async Task<IEnumerable<WorkspaceDetailedView>> GetUserAvailableWorkspacesDetailedViewAsync(Guid userId)
-	{
-		IEnumerable<WorkspaceDatabase> workspaces = await _repository.GetUserAvailableWorkspacesAsync(userId);
-
-		List<Guid> userIds = workspaces.SelectMany(c => c.WorkspaceUsers).Select(c => c.Id).ToList();
-		List<Guid> ownerIds = workspaces.Select(c => c.OwnerId).ToList();
-
-		userIds.AddRange(ownerIds);
-		userIds = userIds.Distinct().ToList();
-
-		IEnumerable<UserDomain> users;
-
-		try
-		{
-			users = await _userServiceClient.GetUsersByIdsAsync(userIds);
-		}
-		catch (Exception e)
-		{
-			users = new List<UserDomain>();
-			Console.WriteLine(e);
-		}
-
-		List<WorkspaceDetailedView> workspaceDetailedViews = new List<WorkspaceDetailedView>();
-
-		foreach (WorkspaceDatabase workspace in workspaces)
-		{
-			List<WorkspaceUserDetailedView> workspaceUserDetailedViews = new List<WorkspaceUserDetailedView>();
-
-			foreach (WorkspaceUserDatabase workspaceUser in workspace.WorkspaceUsers)
-			{
-				foreach (UserDomain userDomain in users)
-				{
-					if (userDomain.Id == workspaceUser.UserId)
-					{
-						workspaceUserDetailedViews.Add(workspaceUser.ToDetailedView(userDomain.ToView()));
-					}
-				}
-			}
-
-			workspaceDetailedViews.Add(workspace.ToDetailedView(workspaceUserDetailedViews));
-		}
-
-		return workspaceDetailedViews;
-	}
-
-	public async Task<Guid> CreateWorkspaceAsync(Guid userId, WorkspaceBlank workspaceBlank)
+	public async Task<Guid> CreateWorkspaceAsync(WorkspaceBlank workspaceBlank, Guid operationBy)
 	{
 		WorkspaceDatabase workspaceDatabase = workspaceBlank.ToDatabase();
 
 		workspaceDatabase.Id = Guid.NewGuid();
-		workspaceDatabase.OwnerId = userId;
+		workspaceDatabase.OwnerId = operationBy;
 
-		await _repository.CreateWorkspaceAsync(workspaceDatabase);
+		WorkspaceUserDomain workspaceUserDomain = new WorkspaceUserDomain()
+		{
+			Id = Guid.NewGuid(),
+			UserId = operationBy,
+			WorkspaceId = workspaceDatabase.Id,
+			Permissions = [WorkspacePermissions.Admin]
+		};
+
+		await _workspaceRepository.CreateWorkspaceAsync(workspaceDatabase);
+		await _workspacePermissionService.AddUserToWorkspaceAsync(workspaceUserDomain);
+		// было бы хорошо переделать на транзакцию с таблицей outbox, но пока так
+		await _permissionEventService.CreateWorkspaceUserPermissionsAsync(workspaceUserDomain.ToWorkspaceUserPermission());
 
 		return workspaceDatabase.Id;
 	}
 
-	public async Task UpdateWorkspaceAsync(Guid userId, Guid workspaceId, WorkspaceBlank workspaceBlank)
+	public async Task UpdateWorkspaceAsync(Guid workspaceId, Guid operationBy, WorkspaceBlank workspaceBlank)
 	{
-		await _repository.UpdateWorkspaceAsync(workspaceId, workspaceBlank.ToDatabase());
+		await CheckPermissionAsync(workspaceId, operationBy, WorkspacePermissions.Edit);
+
+		await _workspaceRepository.UpdateWorkspaceAsync(workspaceId, workspaceBlank.ToDatabase());
 	}
 
-	public async Task DeleteWorkspaceAsync(Guid userId, Guid workspaceId)
+	public async Task<WorkspaceView?> GetWorkspaceByInviteAsync(Guid inviteId, Guid operationBy)
 	{
-		WorkspaceDatabase? workspaceDatabase = await _repository.GetWorkspaceAsync(workspaceId);
+		WorkspaceUserBlank? invite = await _inviteRepository.GetInviteByidAsync(inviteId);
+
+		if (invite == null)
+		{
+			throw new  Exception("Invite not found");
+		}
+
+		if (invite.UserId != operationBy)
+		{
+			throw new UnauthorizedAccessException("Only invited user can accept invite");
+		}
+
+		WorkspaceDatabase? workspace = await _workspaceRepository.GetWorkspaceAsync(invite.WorkspaceId);
+
+		return workspace?.ToDomain().ToView();
+	}
+
+	public async Task DeleteWorkspaceAsync(Guid workspaceId, Guid operationBy)
+	{
+		WorkspaceDatabase? workspaceDatabase = await _workspaceRepository.GetWorkspaceAsync(workspaceId);
 
 		if (workspaceDatabase == null)
 		{
 			throw new Exception("Workspace not found");
 		}
 
-		if (userId != workspaceDatabase.OwnerId)
+		if (operationBy != workspaceDatabase.OwnerId)
 		{
-			throw new Exception("Operation not permitted");
+			throw new Exception("Only owner can delete workspace");
 		}
 
-		await _repository.DeleteWorkspaceAsync(workspaceId);
+		await _workspaceRepository.DeleteWorkspaceAsync(workspaceId);
+		await _workspacePermissionService.DeleteUserFromWorkspaceByWorkspaceIdAsync(workspaceId);
+		await _permissionEventService.DeleteWorkspaceUserPermissionsByWorkspaceId(workspaceId);
 	}
 
-
-	public async Task CreateWorkspaceUserAsync(Guid userId, WorkspaceUserBlank workspaceUserBlank)
+	public async Task AcceptInviteAsync(Guid inviteId, Guid operationBy)
 	{
-		WorkspaceUserDomain workspaceUserDomain = workspaceUserBlank.ToDomain();
+		WorkspaceUserBlank? invite = await _inviteRepository.GetInviteByidAsync(inviteId);
 
-		workspaceUserDomain.UserId = userId;
+		if (invite == null)
+		{
+			throw new Exception("Invite not found");
+		}
 
-		await _repository.CreateWorkspaceUserAsync(workspaceUserDomain.ToDatabase());
+		if (invite.UserId != operationBy)
+		{
+			throw new Exception("Only invited user can accept invite");
+		}
+
+		WorkspaceUserDatabase? userFromDatabase = await _workspaceRepository.GetWorkspaceUserByIdsAsync(invite.WorkspaceId, invite.UserId);
+
+		if (userFromDatabase != null)
+		{
+			throw new Exception("You already in this workspace");
+		}
+
+		WorkspaceUserDomain workspaceUserDomain = invite.ToDomain();
+
+		workspaceUserDomain.Id = Guid.NewGuid();
+
+		WorkspaceUserPermission workspaceUserPermission = new WorkspaceUserPermission()
+		{
+			WorkspaceId = workspaceUserDomain.WorkspaceId,
+			Permissions = workspaceUserDomain.Permissions,
+			UserId = workspaceUserDomain.UserId,
+		};
+
+		await _workspacePermissionService.AddUserToWorkspaceAsync(workspaceUserDomain);
+		await _permissionEventService.CreateWorkspaceUserPermissionsAsync(workspaceUserPermission);
+		await _inviteRepository.DeleteInviteAsync(inviteId);
 	}
 
-	public async Task UpdateWorkspaceUserAsync(Guid userId, Guid workspaceUserId,
-		WorkspaceUserBlank workspaceUserDatabase)
+	public async Task UpdateWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy, WorkspaceUserBlank workspaceUserBlank)
 	{
-		WorkspaceUserDatabase? workspaceUser = await _repository.GetWorkspaceUserAsync(workspaceUserId);
+		WorkspaceUserDatabase? workspaceUserDatabase =
+			await _workspaceRepository.GetWorkspaceUserAsync(workspaceUserId);
 
-		if (workspaceUser == null)
+		if (workspaceUserDatabase == null)
 		{
 			throw new Exception("Workspace user not found");
 		}
 
-		WorkspaceDatabase? workspace = await _repository.GetWorkspaceAsync(workspaceUser.WorkspaceId);
+		await CheckPermissionAsync(workspaceUserDatabase.WorkspaceId, operationBy, WorkspacePermissions.Admin);
 
-		if (workspace == null)
-		{
-			throw new Exception("Workspace not found");
-		}
+		WorkspaceUserDomain workspaceUser = WorkspaceUserDomain.FromBlank(workspaceUserBlank);
 
-		if (workspace.OwnerId != userId)
-		{
-			throw new Exception("Operation not permitted");
-		}
-
-		await _repository.UpdateWorkspaceUserAsync(workspaceUserId, workspaceUserDatabase.ToDomain().ToDatabase());
+		await _permissionEventService.UpdateWorkspaceUserPermissions(workspaceUser.ToWorkspaceUserPermission());
+		await _workspacePermissionService.UpdateUserWorkspace(workspaceUser.WorkspaceId, workspaceUser.UserId, workspaceUser);
 	}
 
-	public async Task DeleteWorkspaceUserAsync(Guid userId, Guid workspaceUserId)
+	public async Task DeleteWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy)
 	{
-		WorkspaceUserDatabase? workspaceUserDatabase = await _repository.GetWorkspaceUserAsync(workspaceUserId);
+		WorkspaceUserDatabase? workspaceUserDatabase =
+			await _workspaceRepository.GetWorkspaceUserAsync(workspaceUserId);
 
 		if (workspaceUserDatabase == null)
 		{
-			throw new Exception("WorkspaceUserDatabase not found");
+			throw new NotFoundException("Workspace user not found");
 		}
 
-		WorkspaceDatabase? workspace = await _repository.GetWorkspaceAsync(workspaceUserDatabase.WorkspaceId);
+		await CheckPermissionAsync(workspaceUserDatabase.WorkspaceId, operationBy, WorkspacePermissions.Admin);
 
-		if (workspace == null)
-		{
-			throw new Exception("Inner exception");
-		}
+		await _permissionEventService.DeleteWorkspaceUserPermissionsById(workspaceUserDatabase.WorkspaceId, workspaceUserDatabase.UserId);
+		await _workspacePermissionService.DeleteUserFromWorkspaceAsync(workspaceUserDatabase.WorkspaceId, workspaceUserDatabase.UserId);
+	}
 
-		if (workspace.OwnerId != userId || workspaceUserDatabase.InvitedBy != userId)
-		{
-			throw new Exception("Operation not permitted");
-		}
+	private async Task CheckPermissionAsync(Guid workspaceId, Guid userId, string workspacePermission)
+	{
+		bool available = await _workspacePermissionService.HasPermissionAsync(workspaceId, userId,
+			workspacePermission);
 
-		await _repository.DeleteWorkspaceUserAsync(workspaceUserId);
+		if (!available) throw new NotPermittedException("You do not have permission to this workspace action");
 	}
 }

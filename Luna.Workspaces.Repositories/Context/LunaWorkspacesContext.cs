@@ -47,9 +47,6 @@ public partial class LunaWorkspacesContext : DbContext
 			entity.Property(e => e.UpdatedAt)
 				.HasDefaultValueSql("now()")
 				.HasColumnName("updated_at");
-			entity.Property(e => e.Visibility)
-				.HasDefaultValueSql("'private'::text")
-				.HasColumnName("visibility");
 		});
 
 		modelBuilder.Entity<WorkspaceUserDatabase>(entity =>
@@ -75,9 +72,6 @@ public partial class LunaWorkspacesContext : DbContext
 			entity.Property(e => e.Permissions)
 				.HasDefaultValueSql("'{view}'::text[]")
 				.HasColumnName("permissions");
-			entity.Property(e => e.Roles)
-				.HasDefaultValueSql("'{member}'::text[]")
-				.HasColumnName("roles");
 			entity.Property(e => e.UpdatedAt)
 				.HasDefaultValueSql("now()")
 				.HasColumnName("updated_at");

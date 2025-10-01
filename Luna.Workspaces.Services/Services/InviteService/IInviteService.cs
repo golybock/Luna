@@ -4,9 +4,7 @@ namespace Luna.Workspaces.Services.Services.InviteService;
 
 public interface IInviteService
 {
-	Task<Guid> CreateInviteAsync(Guid operationBy, WorkspaceUserBlank workspaceUserBlank);
-
-	Task<WorkspaceUserBlank?> GetInviteByidAsync(Guid operationBy, Guid inviteId);
+	Task<string> CreateInviteAsync(WorkspaceUserBlank workspaceUserBlank, Guid operationBy);
 
 	Task DeleteInviteAsync(Guid inviteId);
 }

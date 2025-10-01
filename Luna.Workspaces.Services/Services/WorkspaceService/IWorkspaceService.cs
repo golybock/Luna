@@ -5,17 +5,14 @@ namespace Luna.Workspaces.Services.Services.WorkspaceService;
 
 public interface IWorkspaceService
 {
-	Task<WorkspaceView?> GetWorkspaceAsync(Guid operationBy, Guid id);
-	Task<IEnumerable<WorkspaceView>> GetUserAvailableWorkspacesAsync(Guid userId);
-
-	Task<WorkspaceDetailedView?> GetWorkspaceDetailedViewAsync(Guid operationBy, Guid id);
-	Task<IEnumerable<WorkspaceDetailedView>> GetUserAvailableWorkspacesDetailedViewAsync(Guid userId);
-
-	Task<Guid> CreateWorkspaceAsync(Guid operationBy, WorkspaceBlank workspaceBlank);
-	Task UpdateWorkspaceAsync(Guid operationBy, Guid workspaceId, WorkspaceBlank workspaceBlank);
-	Task DeleteWorkspaceAsync(Guid operationBy, Guid workspaceId);
-
-	Task CreateWorkspaceUserAsync(Guid operationBy, WorkspaceUserBlank workspaceBlank);
-	Task UpdateWorkspaceUserAsync(Guid operationBy, Guid workspaceUserId, WorkspaceUserBlank workspaceBlank);
-	Task DeleteWorkspaceUserAsync(Guid operationBy, Guid workspaceUserId);
+	Task<WorkspaceView?> GetWorkspaceAsync(Guid workspaceId, Guid operationBy);
+	Task<IEnumerable<WorkspaceView>> GetAvailableWorkspacesAsync(Guid operationBy);
+	Task<WorkspaceDetailedView?> GetWorkspaceDetailedViewAsync(Guid workspaceId, Guid operationBy);
+	Task<Guid> CreateWorkspaceAsync(WorkspaceBlank workspaceBlank, Guid operationBy);
+	Task UpdateWorkspaceAsync(Guid workspaceId, Guid operationBy, WorkspaceBlank workspaceBlank);
+	Task DeleteWorkspaceAsync(Guid workspaceId, Guid operationBy);
+	Task<WorkspaceView?> GetWorkspaceByInviteAsync(Guid inviteId, Guid operationBy);
+	Task AcceptInviteAsync(Guid inviteId, Guid operationBy);
+	Task UpdateWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy, WorkspaceUserBlank workspaceUserBlank);
+	Task DeleteWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy);
 }
