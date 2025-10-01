@@ -1,355 +1,255 @@
 ﻿using Luna.Pages.Models.Blank.Models;
 using Luna.Pages.Models.Database.Additional;
+using Luna.Pages.Models.Database.Models;
 using Luna.Pages.Models.Domain.Models;
 using Luna.Pages.Models.View.Additional;
 using Luna.Pages.Models.View.Models;
+using Luna.Pages.Repositories.Repositories.Page.Query;
 using Luna.Pages.Services.Commands.Page;
 using Luna.Pages.Services.Commands.PageComment;
 using Luna.Pages.Services.Commands.PageContent;
 using Luna.Pages.Services.Queries.Page;
 using Luna.Pages.Services.Queries.PageComment;
 using Luna.Pages.Services.Queries.PageContent;
+using Luna.Pages.Services.Services.WorkspacePermissionService;
+using Luna.Tools.SharedModels.Models;
 using Luna.Tools.SharedModels.Models.API;
+using Luna.Tools.SharedModels.Models.Exceptions;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Luna.Pages.Services.Services;
 
 public class PageService : IPageService
 {
 	private readonly IMediator _mediator;
-	// private readonly ILogger _logger;
+	private readonly IWorkspacePermissionService _workspacePermissionService;
+	private readonly IPageQueryRepository _pageQueryRepository;
 
-	public PageService(IMediator mediator)
+	public PageService(
+		IMediator mediator,
+		IWorkspacePermissionService workspacePermissionService,
+		IPageQueryRepository pageQueryRepository
+	)
 	{
 		_mediator = mediator;
-		// _logger = logger;
+		_workspacePermissionService = workspacePermissionService;
+		_pageQueryRepository = pageQueryRepository;
 	}
 
 	public async Task<Guid> CreatePageAsync(BlankRequest<CreatePageBlank> request)
 	{
-		try
-		{
-			CreatePageCommand command = new CreatePageCommand(request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Blank.WorkspaceId, request.UserId, WorkspacePermissions.Edit);
+
+		CreatePageCommand command = new CreatePageCommand(request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> MovePageAsync(BlankRequest<MovePageBlank> request)
 	{
-		try
-		{
-			MovePageCommand command = new MovePageCommand(request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Blank.PageId, request.UserId, WorkspacePermissions.Edit);
+
+		MovePageCommand command = new MovePageCommand(request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> TogglePinPageAsync(BlankRequest<TogglePinPageBlank> request)
 	{
-		try
-		{
-			TogglePinPageCommand command = new TogglePinPageCommand(request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Blank.PageId, request.UserId, WorkspacePermissions.Edit);
+
+		TogglePinPageCommand command = new TogglePinPageCommand(request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> ToggleArchivePageAsync(BlankRequest<ToggleArchivePageBlank> request)
 	{
-		try
-		{
-			ToggleArchivePageCommand command = new ToggleArchivePageCommand(request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Blank.PageId, request.UserId, WorkspacePermissions.Edit);
+
+		ToggleArchivePageCommand command = new ToggleArchivePageCommand(request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> DeletePageAsync(DeleteRequest request)
 	{
-		try
-		{
-			DeletePageCommand command = new DeletePageCommand(request.ObjectId, request.UserId);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
+
+		DeletePageCommand command = new DeletePageCommand(request.ObjectId, request.UserId);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> UpdatePageAsync(UpdateRequest<PatchPageBlank> request)
 	{
-		try
-		{
-			UpdatePageCommand command = new UpdatePageCommand(request.ObjectId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
+
+		UpdatePageCommand command = new UpdatePageCommand(request.ObjectId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> UpdatePageContentAsync(UpdateRequest<UpdatePageContentBlank> request)
 	{
-		try
-		{
-			UpdatePageContentCommand command =
-				new UpdatePageContentCommand(request.ObjectId, request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
+
+		UpdatePageContentCommand command = new UpdatePageContentCommand(request.ObjectId, request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> CreatePageCommentAsync(BlankRequest<CreatePageCommentBlank> request)
 	{
-		try
-		{
-			CreatePageCommentCommand command = new CreatePageCommentCommand(request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Blank.PageId, request.UserId, WorkspacePermissions.Comment);
+
+		CreatePageCommentCommand command = new CreatePageCommentCommand(request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> UpdatePageCommentAsync(UpdateRequest<PatchPageCommentBlank> request)
 	{
-		try
-		{
-			UpdatePageCommentCommand command =
-				new UpdatePageCommentCommand(request.ObjectId, request.UserId, request.Blank);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		UpdatePageCommentCommand command = new UpdatePageCommentCommand(request.ObjectId, request.UserId, request.Blank);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<bool> DeletePageCommentAsync(DeleteRequest request)
 	{
-		try
-		{
-			DeletePageCommentCommand command = new DeletePageCommentCommand(request.ObjectId, request.UserId);
-			return await _mediator.Send(command, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		DeletePageCommentCommand command = new DeletePageCommentCommand(request.ObjectId, request.UserId);
+		return await _mediator.Send(command, CancellationToken.None);
 	}
 
 	public async Task<PageView?> GetPageByIdAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageByIdQuery query = new GetPageByIdQuery(request.Id);
+		GetPageByIdQuery query = new GetPageByIdQuery(request.Id);
 
-			PageDomain? page = await _mediator.Send(query, CancellationToken.None);
+		PageDomain? page = await _mediator.Send(query, CancellationToken.None);
 
-			return page?.ToView();
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return page?.ToView();
 	}
 
 	public async Task<LightPageView?> GetPageLightViewAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageByIdQuery query = new GetPageByIdQuery(request.Id);
+		GetPageByIdQuery query = new GetPageByIdQuery(request.Id);
 
-			PageDomain? page = await _mediator.Send(query, CancellationToken.None);
+		PageDomain? page = await _mediator.Send(query, CancellationToken.None);
 
-			return page?.ToLightPageView();
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return page?.ToLightPageView();
 	}
 
 	public async Task<IEnumerable<PageBlockView>> GetPageBlocksAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageBlocksQuery query = new GetPageBlocksQuery(request.Id);
+		GetPageBlocksQuery query = new GetPageBlocksQuery(request.Id);
 
-			IEnumerable<PageBlockDomain> pageBlocks = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageBlockDomain> pageBlocks = await _mediator.Send(query, CancellationToken.None);
 
-			return pageBlocks.Select(item => item.ToView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pageBlocks.Select(item => item.ToView());
 	}
 
 	public async Task<PageFullView?> GetPageFullViewAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageFullViewQuery query = new GetPageFullViewQuery(request.Id);
+		GetPageFullViewQuery query = new GetPageFullViewQuery(request.Id);
 
-			PageFullDomain? pageFullDomain = await _mediator.Send(query, CancellationToken.None);
+		PageFullDomain? pageFullDomain = await _mediator.Send(query, CancellationToken.None);
 
-			return pageFullDomain?.ToView();
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pageFullDomain?.ToView();
 	}
 
-	public async Task<IEnumerable<LightPageView>> GetWorkspacePagesAsync(GetRequest request, bool includeArchived = false)
+	public async Task<IEnumerable<LightPageView>> GetWorkspacePagesAsync(GetRequest request,
+		bool includeArchived = false)
 	{
-		try
-		{
-			GetWorkspacePagesQuery query = new GetWorkspacePagesQuery(request.Id, includeArchived);
+		GetWorkspacePagesQuery query = new GetWorkspacePagesQuery(request.Id, includeArchived);
 
-			IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
 
-			return pagesDomain.Select(item => item.ToLightPageView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pagesDomain.Select(item => item.ToLightPageView());
 	}
 
 	public async Task<IEnumerable<LightPageView>> GetPageTemplatesAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageTemplatesQuery query = new GetPageTemplatesQuery(request.Id);
+		GetPageTemplatesQuery query = new GetPageTemplatesQuery(request.Id);
 
-			IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
 
-			return pagesDomain.Select(item => item.ToLightPageView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pagesDomain.Select(item => item.ToLightPageView());
 	}
 
 	public async Task<IEnumerable<LightPageView>> GetArchivedPagesAsync(GetRequest request)
 	{
-		try
-		{
-			GetArchivedPagesQuery query = new GetArchivedPagesQuery(request.Id);
+		GetArchivedPagesQuery query = new GetArchivedPagesQuery(request.Id);
 
-			IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
 
-			return pagesDomain.Select(item => item.ToLightPageView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pagesDomain.Select(item => item.ToLightPageView());
 	}
 
-	public async Task<IEnumerable<LightPageView>> SearchPagesByTitleAsync(GetRequest request, string searchTerm, int limit = 50)
+	public async Task<IEnumerable<LightPageView>> SearchPagesByTitleAsync(GetRequest request, string searchTerm,
+		int limit = 50)
 	{
-		try
-		{
-			SearchPagesByTitleQuery query = new SearchPagesByTitleQuery(searchTerm, request.Id, limit);
+		SearchPagesByTitleQuery query = new SearchPagesByTitleQuery(searchTerm, request.Id, limit);
 
-			IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageDomain> pagesDomain = await _mediator.Send(query, CancellationToken.None);
 
-			return pagesDomain.Select(item => item.ToLightPageView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pagesDomain.Select(item => item.ToLightPageView());
 	}
 
 	public async Task<bool> PageExistsAsync(GetRequest request)
 	{
-		try
-		{
-			PageExistsQuery query = new PageExistsQuery(request.Id);
+		PageExistsQuery query = new PageExistsQuery(request.Id);
 
-			return await _mediator.Send(query, CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return await _mediator.Send(query, CancellationToken.None);
 	}
 
 	public async Task<IEnumerable<PageCommentView>> GetPageCommentsAsync(GetRequest request)
 	{
-		try
-		{
-			GetPageCommentsQuery query = new GetPageCommentsQuery(request.Id);
+		GetPageCommentsQuery query = new GetPageCommentsQuery(request.Id);
 
-			IEnumerable<PageCommentDomain> pageComments = await _mediator.Send(query, CancellationToken.None);
+		IEnumerable<PageCommentDomain> pageComments = await _mediator.Send(query, CancellationToken.None);
 
-			return pageComments.Select(item => item.ToView());
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pageComments.Select(item => item.ToView());
 	}
 
 	public async Task<PageStatisticView> GetWorkspacePageStatisticsAsync(GetRequest request)
 	{
-		try
-		{
-			GetWorkspacePageStatisticsQuery query = new GetWorkspacePageStatisticsQuery(request.Id);
+		GetWorkspacePageStatisticsQuery query = new GetWorkspacePageStatisticsQuery(request.Id);
 
-			PageStatistics statistics = await _mediator.Send(query, CancellationToken.None);
+		PageStatistics statistics = await _mediator.Send(query, CancellationToken.None);
 
-			return statistics.ToView();
-		}
-		catch (Exception ex)
-		{
-			//_logger.LogError("{Message}", ex.Message);
-			throw;
-		}
+		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return statistics.ToView();
+	}
+
+	private async Task CheckPermissionAsync(Guid pageId, Guid userId, string workspacePermission)
+	{
+		PageDatabase? page = await _pageQueryRepository.GetPageByIdAsync(pageId);
+
+		if(page == null) throw new NotFoundException("Page not found");
+
+		bool available = await _workspacePermissionService.HasPermissionAsync(new Guid(page.WorkspaceId), userId,
+			workspacePermission);
+
+		if (!available) throw new NotPermittedException("You do not have permission to this workspace action");
+	}
+
+	private async Task CheckPermissionByWorkspaceIdAsync(Guid workspaceId, Guid userId, string workspacePermission)
+	{
+		bool available = await _workspacePermissionService.HasPermissionAsync(workspaceId, userId,
+			workspacePermission);
+
+		if (!available) throw new NotPermittedException("You do not have permission to this workspace action");
 	}
 }
