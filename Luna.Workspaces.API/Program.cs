@@ -1,10 +1,12 @@
 using Luna.Tools.Database.Npgsql.Options;
 using Luna.Tools.Exception;
+using Luna.Tools.SharedModels.Models.Kafka;
 using Luna.Users.gRPC.Client.Services;
 using Luna.Workspaces.Repositories.Context;
 using Luna.Workspaces.Repositories.Repositories.InviteRepository;
 using Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
 using Luna.Workspaces.Services.Services.InviteService;
+using Luna.Workspaces.Services.Services.PermissionEventService;
 using Luna.Workspaces.Services.Services.WorkspaceService;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,18 +31,11 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-if (builder.Environment.IsProduction())
-{
-	builder.Logging.AddJsonConsole(options =>
-	{
-		options.IncludeScopes = true;
-		options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
-	});
-}
+builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 
 DatabaseOptions databaseOptions = new DatabaseOptions()
 {
-	ConnectionString = builder.Configuration.GetConnectionString("luna_auth") ?? throw new InvalidOperationException()
+	ConnectionString = builder.Configuration.GetConnectionString("luna_workspaces") ?? throw new InvalidOperationException()
 };
 
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
@@ -50,6 +45,8 @@ builder.Services.AddScoped<IInviteRepository, InviteRepository>();
 
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<IInviteService, InviteService>();
+
+builder.Services.AddSingleton<IPermissionEventService, PermissionEventService>();
 
 builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
 
