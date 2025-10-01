@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Tools\Luna.Tools.csproj" />
+    </ItemGroup>
+
 </Project>

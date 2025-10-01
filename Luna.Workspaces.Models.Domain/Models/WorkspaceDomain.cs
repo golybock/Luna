@@ -1,6 +1,4 @@
-﻿using Luna.Tools.SharedModels.Models;
-
-namespace Luna.Workspaces.Domain.Models;
+﻿namespace Luna.Workspaces.Domain.Models;
 
 public class WorkspaceDomain
 {
@@ -11,7 +9,6 @@ public class WorkspaceDomain
 	public Guid OwnerId { get; set; }
 	public string? Icon { get; set; }
 	public string? Description { get; set; }
-	public string? Visibility { get; set; } = null!;
 	public string DefaultPermission { get; set; } = null!;
 	public object? Settings { get; set; }
 	public DateTime? DeletedAt { get; set; }

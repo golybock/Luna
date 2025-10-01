@@ -18,7 +18,6 @@ public static class WorkspaceExtensions
 			DefaultPermission = workspaceDatabase.DefaultPermission,
 			DeletedAt = workspaceDatabase.DeletedAt,
 			Description = workspaceDatabase.Description,
-			Visibility = workspaceDatabase.Visibility,
 			Icon = workspaceDatabase.Icon,
 			Name = workspaceDatabase.Name,
 			Settings = workspaceDatabase.Settings,
@@ -36,7 +35,6 @@ public static class WorkspaceExtensions
 			DefaultPermission = workspaceDomain.DefaultPermission,
 			DeletedAt = workspaceDomain.DeletedAt,
 			Description = workspaceDomain.Description,
-			Visibility = workspaceDomain.Visibility,
 			Icon = workspaceDomain.Icon,
 			Name = workspaceDomain.Name,
 			Settings = workspaceDomain.Settings,
@@ -56,7 +54,6 @@ public static class WorkspaceExtensions
 			AcceptedAt = workspaceUserDatabase.AcceptedAt,
 			InvitedBy = workspaceUserDatabase.InvitedBy,
 			Permissions = workspaceUserDatabase.Permissions,
-			Roles = workspaceUserDatabase.Roles,
 			UserId = workspaceUserDatabase.UserId,
 			WorkspaceId = workspaceUserDatabase.WorkspaceId,
 		};
@@ -70,7 +67,6 @@ public static class WorkspaceExtensions
 			AcceptedAt = workspaceUserDomain.AcceptedAt,
 			InvitedBy = workspaceUserDomain.InvitedBy,
 			Permissions = workspaceUserDomain.Permissions,
-			Roles = workspaceUserDomain.Roles,
 			UserId = workspaceUserDomain.UserId,
 			WorkspaceId = workspaceUserDomain.WorkspaceId,
 		};
@@ -84,7 +80,6 @@ public static class WorkspaceExtensions
 			AcceptedAt = workspaceUserDatabase.AcceptedAt,
 			InvitedBy = workspaceUserDatabase.InvitedBy,
 			Permissions = workspaceUserDatabase.Permissions,
-			Roles = workspaceUserDatabase.Roles,
 			UserId = workspaceUserDatabase.UserId,
 			WorkspaceId = workspaceUserDatabase.WorkspaceId,
 			User = userView
@@ -98,7 +93,6 @@ public static class WorkspaceExtensions
 			UserId = workspaceUserBlank.UserId,
 			WorkspaceId =workspaceUserBlank.WorkspaceId,
 			Permissions = workspaceUserBlank.Permissions,
-			Roles = workspaceUserBlank.Roles,
 		};
 	}
 
@@ -110,7 +104,6 @@ public static class WorkspaceExtensions
 			AcceptedAt = workspaceUserDomain.AcceptedAt,
 			InvitedBy = workspaceUserDomain.InvitedBy,
 			Permissions = workspaceUserDomain.Permissions,
-			Roles = workspaceUserDomain.Roles,
 			UserId = workspaceUserDomain.UserId,
 			WorkspaceId = workspaceUserDomain.WorkspaceId,
 		};
@@ -122,7 +115,6 @@ public static class WorkspaceExtensions
 		{
 			DefaultPermission = workspaceBlank.DefaultPermission,
 			Description = workspaceBlank.Description,
-			Visibility = workspaceBlank.Visibility,
 			Icon = workspaceBlank.Icon,
 			Name = workspaceBlank.Name,
 			Settings = workspaceBlank.Settings
@@ -137,7 +129,6 @@ public static class WorkspaceExtensions
 			Id = workspaceDatabase.Id,
 			DefaultPermission = workspaceDatabase.DefaultPermission,
 			Description = workspaceDatabase.Description,
-			Visibility = workspaceDatabase.Visibility,
 			Icon = workspaceDatabase.Icon,
 			Name = workspaceDatabase.Name,
 			Settings = workspaceDatabase.Settings,

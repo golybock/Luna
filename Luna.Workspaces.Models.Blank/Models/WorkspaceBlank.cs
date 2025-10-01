@@ -5,7 +5,6 @@ public class WorkspaceBlank
 	public string Name { get; set; } = null!;
 	public string? Icon { get; set; }
 	public string? Description { get; set; }
-	public string Visibility { get; set; } = null!;
 	public string DefaultPermission { get; set; } = null!;
 	public object? Settings { get; set; }
 }

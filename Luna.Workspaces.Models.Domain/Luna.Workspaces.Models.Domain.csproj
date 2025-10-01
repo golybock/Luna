@@ -9,6 +9,8 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Luna.Tools.SharedModels\Luna.Tools.SharedModels.csproj" />
+      <ProjectReference Include="..\Luna.Workspaces.Models.Blank\Luna.Workspaces.Models.Blank.csproj" />
+      <ProjectReference Include="..\Luna.Workspaces.Models.Database\Luna.Workspaces.Models.Database.csproj" />
     </ItemGroup>
 
 </Project>
