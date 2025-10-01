@@ -104,6 +104,22 @@
         networks:
             - backend
 
+    kafka-init:
+        image: confluentinc/cp-kafka:7.4.0
+        depends_on:
+            - kafka
+        entrypoint: [ "/bin/sh", "-c" ]
+        command: |
+            for i in $(seq 1 30); do
+              if kafka-topics --bootstrap-server kafka:29092 --list >/dev/null 2>&1; then
+                kafka-topics --bootstrap-server kafka:29092 --create --topic workspace-permission-events --partitions 1 --replication-factor 1 \
+                  && echo "Topic created" && exit 0
+              fi
+              echo "Waiting for kafka... ($i)"
+              sleep 2
+            done
+            echo "Failed to create topic" && exit 1
+
     # Services
     luna.auth.api:
         image: luna.auth.api
@@ -131,7 +147,9 @@
             dockerfile: Luna.Workspaces.API/Dockerfile
         networks:
             - backend
-
+        depends_on:
+            postgres:
+                condition: service_started
 
     luna.users.api:
         image: luna.users.api
@@ -156,6 +174,11 @@
             dockerfile: Luna.Pages.API/Dockerfile
         networks:
             - backend
+        depends_on:
+            postgres:
+                condition: service_started
+            mongodb:
+                condition: service_started
 
     luna.users.gRPC:
         image: luna.auth.grpc
