@@ -23,7 +23,6 @@ $desktop-header-height: 96px;
 @mixin scrollbar {
 	overflow: hidden;
 	overflow-y: auto;
-	//margin-right: 4.5px;
 
 	&::-webkit-scrollbar {
 		position: absolute;
@@ -37,11 +36,37 @@ $desktop-header-height: 96px;
 	}
 
 	&::-webkit-scrollbar-thumb {
-		background: var(--light-grey);
+		background: var(--gray);
 		border-radius: 2px;
 
 		&:hover {
 			width: 12px;
+		}
+	}
+}
+
+@mixin horizontalScrollbar {
+	overflow: hidden;
+	overflow-x: auto;
+	padding-bottom: 4px;
+
+	&::-webkit-scrollbar {
+		height: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		border-radius: 2px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: var(--secondary-container);
+		border-radius: 5px;
+		//border-top: 2px solid transparent;
+		background-clip: padding-box;
+
+		&:hover{
+			background: var(--gray);
+			background-clip: padding-box;
 		}
 	}
 }
