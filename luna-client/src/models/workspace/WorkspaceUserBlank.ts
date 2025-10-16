@@ -1,6 +1,5 @@
-﻿export interface IWorkspaceUserBlank{
+﻿export interface WorkspaceUserBlank{
 	userId: string;
 	workspaceId: string;
-	roles: string[];
 	permissions: string[];
 }

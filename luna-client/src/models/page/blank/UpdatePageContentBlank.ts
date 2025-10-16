@@ -1,4 +1,4 @@
-﻿import { PageBlockBlank } from "@/types/page/pageBlockBlank";
+﻿import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
 
 export interface UpdatePageContentBlank{
 	blocks: PageBlockBlank[];

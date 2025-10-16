@@ -1,4 +1,4 @@
-﻿export default interface IUserView {
+﻿export default interface UserView {
 	id: string;
 	username: string;
 	displayName?: string;

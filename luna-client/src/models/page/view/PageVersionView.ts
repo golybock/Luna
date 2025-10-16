@@ -1,4 +1,4 @@
-﻿import { PageBlockView } from "@/types/page/pageBlockView";
+﻿import { PageBlockView } from "@/models/page/view/PageBlockView";
 
 export interface PageVersionView{
 	id: string;

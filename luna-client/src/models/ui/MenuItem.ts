@@ -1,6 +1,6 @@
-﻿import {StaticImport} from "next/dist/shared/lib/get-img-props";
+﻿import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
-export interface IMenuItem {
+export interface MenuItem {
 	name: string;
 	emoji?: string | undefined;
 	imagePath?: string | StaticImport | undefined;

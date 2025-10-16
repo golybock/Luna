@@ -1,8 +1,7 @@
-﻿export interface IWorkspaceBlank {
+﻿export interface WorkspaceBlank {
 	name: string;
 	icon?: string;
 	description?: string;
-	visibility?: string;
 	defaultPermission?: string;
 	settings?: object;
 }

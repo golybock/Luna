@@ -1,10 +1,9 @@
 ﻿import IUserView from "@/types/auth/IUserView";
 
-export interface IWorkspaceUserDetailedView {
+export interface WorkspaceUserDetailedView {
 	id: string;
 	userId: string;
 	workspaceId: string;
-	roles: string[];
 	permissions: string[];
 	invitedBy?: string;
 	acceptedAt?: string;

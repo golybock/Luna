@@ -1,4 +1,4 @@
-﻿export interface ICreatePageBlank {
+﻿export interface CreatePageBlank {
 	workspaceId: string;
 	parentId?: string;
 	title: string;
