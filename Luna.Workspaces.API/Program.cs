@@ -4,9 +4,11 @@ using Luna.Tools.SharedModels.Models.Kafka;
 using Luna.Users.gRPC.Client.Services;
 using Luna.Workspaces.Repositories.Context;
 using Luna.Workspaces.Repositories.Repositories.InviteRepository;
+using Luna.Workspaces.Repositories.Repositories.WorkspacePermissionRepository;
 using Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
 using Luna.Workspaces.Services.Services.InviteService;
 using Luna.Workspaces.Services.Services.PermissionEventService;
+using Luna.Workspaces.Services.Services.WorkspacePermissionService;
 using Luna.Workspaces.Services.Services.WorkspaceService;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,12 +40,20 @@ DatabaseOptions databaseOptions = new DatabaseOptions()
 	ConnectionString = builder.Configuration.GetConnectionString("luna_workspaces") ?? throw new InvalidOperationException()
 };
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+	options.Configuration = "redis:6379,password=system";
+	options.InstanceName = "workspaces:";
+});
+
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
 
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+builder.Services.AddScoped<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddScoped<IInviteRepository, InviteRepository>();
 
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddScoped<IWorkspacePermissionService, WorkspacePermissionService>();
 builder.Services.AddScoped<IInviteService, InviteService>();
 
 builder.Services.AddSingleton<IPermissionEventService, PermissionEventService>();
@@ -53,11 +63,6 @@ builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(bui
 builder.Services.AddDbContext<LunaWorkspacesContext>(options =>
 	options.UseNpgsql(databaseOptions.ConnectionString));
 
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-	options.Configuration = "127.0.0.1:6379";
-	options.InstanceName = "workspaces:";
-});
 
 WebApplication app = builder.Build();
 

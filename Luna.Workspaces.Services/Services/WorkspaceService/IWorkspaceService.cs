@@ -11,8 +11,8 @@ public interface IWorkspaceService
 	Task<Guid> CreateWorkspaceAsync(WorkspaceBlank workspaceBlank, Guid operationBy);
 	Task UpdateWorkspaceAsync(Guid workspaceId, Guid operationBy, WorkspaceBlank workspaceBlank);
 	Task DeleteWorkspaceAsync(Guid workspaceId, Guid operationBy);
-	Task<WorkspaceView?> GetWorkspaceByInviteAsync(Guid inviteId, Guid operationBy);
-	Task AcceptInviteAsync(Guid inviteId, Guid operationBy);
+	Task<WorkspaceView?> GetWorkspaceByInviteAsync(Guid inviteId, string operationByEmail);
+	Task AcceptInviteAsync(Guid inviteId, string operationByEmail, Guid operationBy);
 	Task UpdateWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy, WorkspaceUserBlank workspaceUserBlank);
 	Task DeleteWorkspaceUserAsync(Guid workspaceUserId, Guid operationBy);
 }

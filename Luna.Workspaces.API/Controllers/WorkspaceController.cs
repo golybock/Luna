@@ -68,23 +68,22 @@ public class WorkspaceController : ServiceControllerBase
 	}
 
 	[HttpPost("[action]")]
-	public async Task<ActionResult<Guid>> InviteUserToWorkspace(WorkspaceUserBlank workspaceUserBlank)
+	public async Task<InviteUserView> InviteUserToWorkspace(InviteUserBlank inviteUserBlank)
 	{
-		string id = await _inviteService.CreateInviteAsync(workspaceUserBlank, UserId);
-		return Ok(id);
+		return await _inviteService.CreateInviteAsync(inviteUserBlank, UserId);
 	}
 
 	[HttpPost("[action]")]
 	public async Task<ActionResult> AcceptInvite(Guid inviteId)
 	{
-		await _workspaceService.AcceptInviteAsync(inviteId, UserId);
+		await _workspaceService.AcceptInviteAsync(inviteId, Email, UserId);
 		return Ok();
 	}
 
 	[HttpGet("[action]")]
 	public async Task<ActionResult<WorkspaceView>> GetWorkspaceByInvite(Guid inviteId)
 	{
-		WorkspaceView? workspace = await _workspaceService.GetWorkspaceByInviteAsync(inviteId, UserId);
+		WorkspaceView? workspace = await _workspaceService.GetWorkspaceByInviteAsync(inviteId, Email);
 		return workspace != null ? Ok(workspace) : NotFound();
 	}
 

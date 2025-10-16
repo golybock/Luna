@@ -1,8 +1,8 @@
 ﻿namespace Luna.Workspaces.Models.Database.Models;
 
-public class WorkspaceUserCache
+public class InviteUserDatabase
 {
-	public Guid UserId { get; set; }
+	public string Email { get; set; } = null!;
 	public Guid WorkspaceId { get; set; }
 	public string[] Permissions { get; set; } = null!;
 	public Guid? InvitedBy { get; set; }

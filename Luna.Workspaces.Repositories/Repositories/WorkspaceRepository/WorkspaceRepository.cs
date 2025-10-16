@@ -2,19 +2,16 @@
 using Luna.Workspaces.Repositories.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
 
 namespace Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
 
 public class WorkspaceRepository : IWorkspaceRepository
 {
 	private readonly LunaWorkspacesContext _context;
-	private readonly ILogger _logger;
 
-	public WorkspaceRepository(LunaWorkspacesContext context, ILogger logger)
+	public WorkspaceRepository(LunaWorkspacesContext context)
 	{
 		_context = context;
-		_logger = logger;
 	}
 
 	public async Task<WorkspaceDatabase?> GetWorkspaceAsync(Guid id)

@@ -1,5 +1,7 @@
-﻿using Luna.Workspaces.Models.Blank.Models;
+﻿using Luna.Workspaces.Domain.Models;
+using Luna.Workspaces.Models.Blank.Models;
 using Luna.Workspaces.Models.Database.Models;
+using Luna.Workspaces.Models.View.Models;
 using Luna.Workspaces.Repositories.Repositories.InviteRepository;
 
 namespace Luna.Workspaces.Services.Services.InviteService;
@@ -13,21 +15,23 @@ public class InviteService : IInviteService
 		_inviteRepository = inviteRepository;
 	}
 
-	public async Task<string> CreateInviteAsync(WorkspaceUserBlank workspaceUserBlank, Guid operationBy)
+	public async Task<InviteUserDomain?> GetInviteByidAsync(Guid inviteId)
+	{
+		InviteUserDatabase? inviteDatabase = await _inviteRepository.GetInviteByidAsync(inviteId);
+
+		return inviteDatabase != null ? InviteUserDomain.FromDatabase(inviteDatabase) : null;
+	}
+
+	public async Task<InviteUserView> CreateInviteAsync(InviteUserBlank inviteUserBlank, Guid operationBy)
 	{
 		Guid inviteId = Guid.NewGuid();
 
-		WorkspaceUserCache workspaceUserCache = new WorkspaceUserCache()
-		{
-			InvitedBy = operationBy,
-			Permissions = workspaceUserBlank.Permissions,
-			UserId = workspaceUserBlank.UserId,
-			WorkspaceId = workspaceUserBlank.WorkspaceId
-		};
+		InviteUserDomain inviteDomain = InviteUserDomain.FromBlank(inviteUserBlank, operationBy);
+		InviteUserDatabase inviteDatabase = inviteDomain.ToDatabase();
 
-		await _inviteRepository.CreateInviteAsync(inviteId, workspaceUserCache);
+		await _inviteRepository.CreateInviteAsync(inviteId, inviteDatabase);
 
-		return inviteId.ToString();
+		return new InviteUserView(){InviteId = inviteId.ToString()};
 	}
 
 	public async Task DeleteInviteAsync(Guid inviteId)
