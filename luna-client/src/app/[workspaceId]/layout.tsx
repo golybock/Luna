@@ -1,29 +1,31 @@
 ﻿"use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import styles from "./layout.module.scss";
 import Image from "next/image";
-import { IMenuItem } from "@/types/IMenuItem";
 import { useActions } from "@/store/hooks/useActions";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/layout/ModalContext";
 import { SettingsModal } from "@/components/modals/settings/SettingsModal";
-import { IPageLightView } from "@/types/page/pageLightView";
-import { pageHttpProvider } from "@/http/pageHttpProvider";
 import { useWorkspaces } from "@/store/hooks/useWorkspaces";
-import { MenuItem } from "@/components/ui/workspaceLayout/MenuItem";
 import { PageMenuItem } from "@/components/ui/workspaceLayout/PageMenuItem";
 import CreatePageBadge from "@/components/ui/createPageBadge/CreatePageBadge";
+import { MenuItem } from "@/models/ui/MenuItem";
+import { MenuItemLink } from "@/components/ui/workspaceLayout/MenuItemLink";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { usePages } from "@/store/hooks/usePages";
+import { getWorkspacePages } from "@/store/slices/pagesSlice";
 
 export default function MainLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
 
-	const [pages, setPages] = useState<IPageLightView[]>([]);
-
+	const { pages } = usePages();
 	const { user } = useAuth();
-	const { setSelectedWorkspace } = useActions();
+	const { setSelectedWorkspace, setPages } = useActions();
 	const { openModal } = useModal();
 	const { selectedWorkspaceId } = useWorkspaces();
+	const dispatch = useDispatch<AppDispatch>();
 
 	const router = useRouter();
 
@@ -32,28 +34,15 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 	}
 
 	useEffect(() => {
-		const getPages = async () => {
-			if (selectedWorkspaceId) {
-				const pages = await pageHttpProvider.getWorkspacePages(selectedWorkspaceId);
-
-				setPages(pages);
-			}
-		}
-
-		getPages();
+		dispatch(getWorkspacePages(selectedWorkspaceId))
 	}, [selectedWorkspaceId])
 
-	const topMenuItems: IMenuItem[] = useMemo(() => {
+	const topMenuItems: MenuItem[] = useMemo(() => {
 		return [
-			{
-				name: "Search",
-				imagePath: "/icons/search_24.svg",
-				path: "/search"
-			},
 			{
 				name: "Home",
 				imagePath: "/icons/home_24.svg",
-				path: "/start",
+				path: `/${selectedWorkspaceId}`,
 			},
 			{
 				name: "Inbox",
@@ -61,9 +50,9 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 				path: "/inbox",
 			}
 		];
-	}, [])
+	}, [selectedWorkspaceId])
 
-	const bottomMenuItems: IMenuItem[] = useMemo(() => {
+	const bottomMenuItems: MenuItem[] = useMemo(() => {
 		return [
 			{
 				name: "Settings",
@@ -83,9 +72,9 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 		]
 	}, [])
 
-	const pagesMenuItems: IMenuItem[] = useMemo(() => {
+	const pagesMenuItems: MenuItem[] = useMemo(() => {
 		return pages.map((page) => {
-			const menuItem: IMenuItem = {
+			const menuItem: MenuItem = {
 				name: page.title,
 				emoji: page.emoji,
 				path: `/${selectedWorkspaceId}/${page.id}`
@@ -96,6 +85,7 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 
 	const navigateToSelectWorkspace = () => {
 		setSelectedWorkspace(null);
+		setPages([]);
 		router.push("/start")
 	}
 
@@ -103,8 +93,8 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 		<div className={styles.container}>
 			<nav className={styles.navbar}>
 				<div>
-					<div className={styles.navbarHeader}>
-						<div className={styles.profileBadge} onClick={handleOnClickSettings}>
+					<div className={styles.navbarHeader} onClick={handleOnClickSettings} role="button">
+						<div className={styles.profileBadge}>
 							<h6>{user?.user?.username ?? user?.email}</h6>
 						</div>
 						<div className={styles.createIcon}>
@@ -119,7 +109,7 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 					<div className={styles.navbarContent}>
 						<div className={styles.menuItems}>
 							{topMenuItems.map((item, i) => (
-								<MenuItem item={item} key={i}/>
+								<MenuItemLink item={item} key={i}/>
 							))}
 						</div>
 						<div className={styles.menuItemsFavoritePages}>
@@ -143,7 +133,7 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 						</div>
 						<div className={styles.menuItems}>
 							{bottomMenuItems.map((item, i) => (
-								<MenuItem item={item} key={i}/>
+								<MenuItemLink item={item} key={i}/>
 							))}
 						</div>
 					</div>
