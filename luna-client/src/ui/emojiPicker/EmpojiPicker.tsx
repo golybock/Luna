@@ -1,6 +1,8 @@
 ﻿import styles from "./EmpojiPicker.module.scss";
 import React, { useEffect, useRef, useState } from "react";
 import { Smile } from "lucide-react";
+import Button from "@/ui/button/Button";
+import Card from "@/ui/card/Card";
 
 const EMOJI_LIST = [
 	'😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
@@ -90,9 +92,10 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 	return (
 		<div className={styles.inputGroup}>
 			<div className={styles.wrapper}>
-				<button
+				<Button
 					ref={buttonRef}
-					type="button"
+					variant="ghost"
+					size="small"
 					className={buttonClasses}
 					onClick={handleButtonClick}
 					disabled={disabled}
@@ -103,24 +106,26 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 					<div className={placeholderClasses}>
 						{placeholder}
 					</div>
-				</button>
+				</Button>
 
 				{isOpen && (
-					<div ref={dropdownRef} className={styles.dropdown}>
-						<div className={styles.emojiGrid}>
-							{EMOJI_LIST.map((emoji, index) => (
-								<button
-									key={index}
-									className={`${styles.emojiItem} ${hoveredEmoji === emoji ? styles.emojiItemHover : ''}`}
-									onClick={() => handleEmojiSelect(emoji)}
-									onMouseEnter={() => setHoveredEmoji(emoji)}
-									onMouseLeave={() => setHoveredEmoji('')}
-								>
-									{emoji}
-								</button>
-							))}
+					<Card padding="small" className={styles.dropdown}>
+						<div ref={dropdownRef} className={styles.dropdownContent}>
+							<div className={styles.emojiGrid}>
+								{EMOJI_LIST.map((emoji, index) => (
+									<button
+										key={index}
+										className={`${styles.emojiItem} ${hoveredEmoji === emoji ? styles.emojiItemHover : ''}`}
+										onClick={() => handleEmojiSelect(emoji)}
+										onMouseEnter={() => setHoveredEmoji(emoji)}
+										onMouseLeave={() => setHoveredEmoji('')}
+									>
+										{emoji}
+									</button>
+								))}
+							</div>
 						</div>
-					</div>
+					</Card>
 				)}
 			</div>
 			{error && (

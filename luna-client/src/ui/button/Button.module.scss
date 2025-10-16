@@ -19,32 +19,31 @@
 	cursor: not-allowed;
 }
 
-/* Variants */
 .primary {
-	background-color: var(--primary);
+	background-color: var(--primary-variant-dark);
 	color: var(--white);
-}
 
-.primary:hover:not(:disabled) {
-	background-color: var(--primary-variant);
+	&:hover:not(:disabled) {
+		background-color: var(--primary-variant);
+	}
 }
 
 .secondary {
 	background-color: var(--dark-gray);
 	color: var(--text);
-}
 
-.secondary:hover:not(:disabled) {
-	background-color: var(--tertiary-container);
+	&:hover:not(:disabled) {
+		background-color: var(--tertiary-container);
+	}
 }
 
 .ghost {
 	background-color: transparent;
 	color: var(--text);
-}
 
-.ghost:hover:not(:disabled) {
-	background-color: var(--secondary-container);
+	&:hover:not(:disabled) {
+		background-color: var(--secondary-container);
+	}
 }
 
 .danger {
@@ -58,9 +57,9 @@
 
 /* Sizes */
 .small {
-	padding: 6px 12px;
+	padding: 0 0;
 	font-size: 14px;
-	height: 32px;
+	height: 20px;
 }
 
 .medium {

@@ -3,6 +3,7 @@ import styles from "./Button.module.scss";
 
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
 	children?: ReactNode;
+	ref?: React.RefObject<HTMLButtonElement>;
 	variant?: ButtonVariant;
 	size?: ButtonSize;
 	disabled?: boolean;
@@ -12,6 +13,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'siz
 
 const Button: React.FC<ButtonProps> = ({
 	children,
+	ref = null,
 	variant = 'primary',
 	size = 'medium',
 	disabled = false,
@@ -30,6 +32,7 @@ const Button: React.FC<ButtonProps> = ({
 
 	return (
 		<button
+			ref={ref}
 			className={classes}
 			onClick={onClick}
 			disabled={disabled}

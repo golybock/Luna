@@ -1,4 +1,6 @@
-﻿.inputGroup {
+﻿@import "src/styles/variables";
+
+.inputGroup {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -83,16 +85,21 @@
 	top: 100%;
 	left: 0;
 	z-index: 1000;
-	background: transparent;
-	//border: 2px solid var(--primary);
-	border: none;
 	border-radius: 8px;
 	padding: 12px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	width: 280px;
-	max-height: 200px;
+	height: 200px;
+	box-sizing: border-box;
+	box-shadow: 2px 2px rgba(0, 0, 0, 0.2);
+	border: 2px solid var(--teriary-container);
 	overflow-y: auto;
 	margin-top: 4px;
+
+	@include scrollbar;
+}
+
+.dropdownContent{
+	width: 260px;
 }
 
 .emojiGrid {
