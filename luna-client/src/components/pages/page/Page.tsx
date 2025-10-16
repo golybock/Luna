@@ -82,11 +82,11 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 	return (
 		<div className={styles.container}>
 
-			<div className={styles.status}>
-				<p>{status}</p>
-			</div>
+			{/*<div className={styles.status}>*/}
+			{/*	<p>{status}</p>*/}
+			{/*</div>*/}
 
-			<div className={styles.imageContainer}>
+			<div className={styles.imageContainer} style={{height: cover ? "auto" : "24px"}}>
 				{cover && (
 					<Image
 						src={cover}
@@ -130,16 +130,14 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 						</div>
 					)}
 				</Card>
-				<div>
-					<Editor
-						onChange={handleEditorChange}
-						data={{
-							blocks: blocks,
-							time: Date.now(),
-							version: page.pageVersionView?.version
-						}}
-					/>
-				</div>
+				<Editor
+					onChange={handleEditorChange}
+					data={{
+						blocks: blocks,
+						time: Date.now(),
+						version: page.pageVersionView?.version
+					}}
+				/>
 			</div>
 		</div>
 	)

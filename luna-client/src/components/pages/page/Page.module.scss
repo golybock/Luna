@@ -4,8 +4,7 @@
 	overflow: auto;
 	width: 100%;
 	height: 100%;
-	gap: 48px;
-	position: relative;
+	gap: 16px;
 
 	input {
 		border: none;
@@ -27,7 +26,7 @@
 
 .imageContainer {
 	width: auto;
-	min-height: 40px;
+	height: auto;
 	position: relative;
 
 	img {
@@ -42,6 +41,7 @@
 	position: absolute;
 	background: var(--secondary-container);
 	padding: 6px 10px;
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
 	justify-content: center;
