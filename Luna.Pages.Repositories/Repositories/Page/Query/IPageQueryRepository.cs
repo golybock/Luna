@@ -12,6 +12,7 @@ public interface IPageQueryRepository
 	Task<IEnumerable<PageDatabase>> GetRootPagesAsync(Guid workspaceId, bool includeArchived = false, CancellationToken cancellationToken = default);
 
 	Task<IEnumerable<PageDatabase>> GetWorkspacePagesAsync(Guid workspaceId, bool includeArchived = false, CancellationToken cancellationToken = default);
+	Task<IEnumerable<PageDatabase>> GetPagesByIdAsync(IEnumerable<Guid> pageIds, CancellationToken cancellationToken = default);
 
 	Task<IEnumerable<PageDatabase>> GetPageTemplatesAsync(Guid workspaceId, CancellationToken cancellationToken = default);
 

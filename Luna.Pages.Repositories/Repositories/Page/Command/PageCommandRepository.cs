@@ -38,13 +38,7 @@ public class PageCommandRepository : PageRepositoryBase, IPageCommandRepository
 			bsonUpdates["$set"][key] = BsonValue.Create(value);
 		}
 
-		Console.WriteLine($"BsonDocument update: {bsonUpdates.ToJson()}");
-
 		UpdateResult? result = await PagesCollection.UpdateOneAsync(filter, bsonUpdates, cancellationToken: cancellationToken);
-
-		Console.WriteLine($"Matched documents: {result.MatchedCount}");
-		Console.WriteLine($"Modified documents: {result.ModifiedCount}");
-		Console.WriteLine($"IsAcknowledged: {result.IsAcknowledged}");
 
 		return result.ModifiedCount > 0;
 	}

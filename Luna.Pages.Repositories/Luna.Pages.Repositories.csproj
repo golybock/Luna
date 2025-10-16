@@ -9,6 +9,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Luna.Pages.Models.Database\Luna.Pages.Models.Database.csproj" />
       <ProjectReference Include="..\Luna.Pages.Models.Domain\Luna.Pages.Models.Domain.csproj" />
+      <ProjectReference Include="..\Luna.Tools.SharedModels\Luna.Tools.SharedModels.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -18,10 +19,12 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.9" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.9">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
+      <PackageReference Include="NEST" Version="7.17.5" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
       <PackageReference Include="StackExchange.Redis" Version="2.9.17" />
     </ItemGroup>

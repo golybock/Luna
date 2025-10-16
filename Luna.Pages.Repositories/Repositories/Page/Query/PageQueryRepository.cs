@@ -42,7 +42,8 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 		return await PagesCollection.Find<PageDatabase>(filter).ToListAsync(cancellationToken: cancellationToken);
 	}
 
-	public async Task<IEnumerable<PageDatabase>> GetWorkspacePagesAsync(Guid workspaceId, bool includeArchived = false, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<PageDatabase>> GetWorkspacePagesAsync(Guid workspaceId, bool includeArchived = false,
+		CancellationToken cancellationToken = default)
 	{
 		FilterDefinitionBuilder<PageDatabase>? filterBuilder = Builders<PageDatabase>.Filter;
 		FilterDefinition<PageDatabase>? filter = filterBuilder.And(
@@ -57,7 +58,22 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 
 		return await PagesCollection
 			.Find(filter)
-			.SortBy(x => x.ParentId) // сначала корневые, потом дочерние
+			.SortBy(x => x.ParentId)
+			.ThenBy(x => x.Index)
+			.ToListAsync(cancellationToken);
+	}
+
+	public async Task<IEnumerable<PageDatabase>> GetPagesByIdAsync(IEnumerable<Guid> pageIds, CancellationToken cancellationToken = default)
+	{
+		FilterDefinitionBuilder<PageDatabase>? filterBuilder = Builders<PageDatabase>.Filter;
+		FilterDefinition<PageDatabase>? filter = filterBuilder.And(
+			filterBuilder.In(nameof(PageDatabase.Id), pageIds),
+			filterBuilder.Eq(nameof(PageDatabase.DeletedAt), BsonNull.Value)
+		);
+
+		return await PagesCollection
+			.Find(filter)
+			.SortBy(x => x.ParentId)
 			.ThenBy(x => x.Index)
 			.ToListAsync(cancellationToken);
 	}
@@ -74,7 +90,7 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 
 		return await PagesCollection
 			.Find(filter)
-			.SortBy(x => x.ParentId) // сначала корневые, потом дочерние
+			.SortBy(x => x.ParentId)
 			.ThenBy(x => x.Index ?? 0)
 			.ToListAsync(cancellationToken);
 	}
@@ -91,24 +107,25 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 
 		return await PagesCollection
 			.Find(filter)
-			.SortBy(x => x.ParentId) // сначала корневые, потом дочерние
+			.SortBy(x => x.ParentId)
 			.ThenBy(x => x.Index ?? 0)
 			.ToListAsync(cancellationToken);
 	}
 
-	public async Task<IEnumerable<PageDatabase>> SearchPagesByTitleAsync(string searchTerm, Guid workspaceId, int limit = 50, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<PageDatabase>> SearchPagesByTitleAsync(string searchTerm, Guid workspaceId,
+		int limit = 50, CancellationToken cancellationToken = default)
 	{
 		FilterDefinitionBuilder<PageDatabase>? filterBuilder = Builders<PageDatabase>.Filter;
 		FilterDefinition<PageDatabase>? filter = filterBuilder.And(
 			filterBuilder.Eq(nameof(PageDatabase.WorkspaceId), workspaceId),
 			filterBuilder.Eq(nameof(PageDatabase.DeletedAt), BsonNull.Value),
-			filterBuilder.AnyStringIn(nameof(PageDatabase.Title), searchTerm)
+			filterBuilder.Regex(nameof(PageDatabase.Title), new BsonRegularExpression(searchTerm, "i"))
 		);
 
 		return await PagesCollection
 			.Find(filter)
-			.SortBy(x => x.ParentId) // сначала корневые, потом дочерние
-			.ThenBy(x => x.Index ?? 0)
+			.SortBy(x => x.ParentId)
+			.Limit(50)
 			.ToListAsync(cancellationToken);
 	}
 
@@ -179,7 +196,6 @@ public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 		return new PageStatistics
 		{
 			TotalPages = (int) totalTask.Result,
-			ActivePages = (int) activeTask.Result,
 			ArchivedPages = (int) archivedTask.Result,
 			DeletedPages = (int) deletedTask.Result,
 			PinnedPages = (int) pinnedTask.Result,
