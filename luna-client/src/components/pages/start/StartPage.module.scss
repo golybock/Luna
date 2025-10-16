@@ -1,4 +1,6 @@
-﻿.container {
+﻿@import "src/styles/variables";
+
+.container {
 	display: flex;
 	width: 100%;
 	height: 100%;
@@ -11,21 +13,28 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	width: 100%;
+	height: 100%;
 	gap: 16px;
+	padding: 32px;
 }
 
 .cards {
-	display: flex;
-	flex-direction: row;
+	width: 100%;
 	gap: 16px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(110px, auto));
+	justify-content: center;
+
+	@include scrollbar;
 }
 
 .workspaceCard {
 	background: var(--secondary-container);
 	padding: 8px;
 	border-radius: 5px;
-	width: 100px;
-	height: 100px;
+	width: 110px !important;
+	height: 110px !important;
 	cursor: pointer;
 
 	display: flex;
@@ -35,5 +44,13 @@
 
 	&:hover {
 		background: var(--teriary-container);
+	}
+}
+
+.workspaceName{
+	h5{
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 85px;
 	}
 }

@@ -12,15 +12,15 @@ import Input from "@/ui/input/Input";
 
 export const AuthPage: React.FC = () => {
 
-	const [email, setEmail] = useState<string>('teplovartem3094@gmail.com');
-	const [code, setCode] = useState<string>('');
-	const [error, setError] = useState<string>('');
+	const [email, setEmail] = useState<string>("");
+	const [code, setCode] = useState<string>("");
+	const [error, setError] = useState<string>("");
 	const { loginGoogle, requestCode, signIn, codeRequested, codeRequestAt } = useAuth();
 	const { resetCodeRequest } = useActions();
 	const router = useRouter();
 
 	useEffect(() => {
-		if(codeRequestAt != null && codeRequestAt + 360 < Date.now()){
+		if (codeRequestAt != null && codeRequestAt + 360 < Date.now()) {
 			resetCodeRequest();
 			console.log("reset code");
 		}
@@ -49,9 +49,12 @@ export const AuthPage: React.FC = () => {
 
 			<div className={styles.content}>
 
-				<h3>Log in your account</h3>
+				<h3>SignIn / SignUp</h3>
 
-				<GoogleAuthButton onClick={handleGoogleClick}/>
+				<GoogleAuthButton
+					onClick={handleGoogleClick}
+					style={{ width: '100%' }}
+				/>
 
 				<div className={styles.signInContent}>
 
