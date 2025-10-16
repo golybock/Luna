@@ -16,11 +16,12 @@ import { usePages } from "@/store/hooks/usePages";
 import { getPageStatistic } from "@/store/slices/workspaceSlice";
 import { pageHttpProvider } from "@/http/pageHttpProvider";
 import { LightPageView } from "@/models/page/view/LightPageView";
+import { toast } from "react-toastify";
 
 export const HomePage: React.FC = () => {
 
 	const { pages } = usePages();
-	const { selectedWorkspaceId, selectedWorkspacePageStatistic } = useWorkspaces();
+	const { selectedWorkspaceId } = useWorkspaces();
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchedPages, setSearchedPages] = useState<LightPageView[]>([]);
@@ -39,6 +40,17 @@ export const HomePage: React.FC = () => {
 		router.push(`/${selectedWorkspaceId}/${pageId}`);
 	}, [selectedWorkspaceId]);
 
+	const handleCloseSearch = () => {
+		setSearchedPages([]);
+		setSearchQuery("");
+	};
+
+	const handleOnKeyDown = async (e : any) => {
+		if (e.key === "Enter") {
+			await handleSearchClick()
+		}
+	};
+
 	const handleSearchClick = useCallback(async () => {
 		if(selectedWorkspaceId == null) return;
 
@@ -49,6 +61,11 @@ export const HomePage: React.FC = () => {
 
 		const pages = await pageHttpProvider.searchPages(selectedWorkspaceId, searchQuery);
 		setSearchedPages(pages);
+
+		if(pages.length == 0){
+			toast.info("No pages found");
+		}
+
 	}, [searchQuery])
 
 	return (
@@ -59,6 +76,7 @@ export const HomePage: React.FC = () => {
 					<Input
 						placeholder="search"
 						value={searchQuery}
+						onKeyDown={handleOnKeyDown}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>
 					<Button
@@ -77,7 +95,17 @@ export const HomePage: React.FC = () => {
 				<div className={styles.contentContainer}>
 					{searchedPages.length > 0 && (
 						<>
-							<p>Search result</p>
+							<div className={styles.searchHeader}>
+								<p>Search result</p>
+								<Button variant="ghost" onClick={handleCloseSearch}>
+									<Image
+										src="/icons/close_24.svg"
+										alt="close"
+										width={16}
+										height={16}
+									/>
+								</Button>
+							</div>
 							<div className={styles.pagesCarousel}>
 								{searchedPages.map((page) => (
 									<Card
@@ -119,7 +147,12 @@ export const HomePage: React.FC = () => {
 								onClick={() => handleOnPageClick(page.id)}
 							>
 								{page.cover && (
-									<Image src={page.cover} alt={"cover"} width={150} height={75}/>
+									<Image
+										src={page.cover}
+										alt="cover"
+										width={150}
+										height={75}
+									/>
 								)}
 								<div className={styles.pageCardContent}>
 									{page.emoji && (
@@ -135,20 +168,20 @@ export const HomePage: React.FC = () => {
 						))}
 					</div>
 				</div>
-				{selectedWorkspacePageStatistic && (
-					<Card>
-						<div>
-							<h5>Statistic</h5>
-							<div className="col">
-								<p>Total pages: {selectedWorkspacePageStatistic.totalPages}</p>
-								<p>Archived pages: {selectedWorkspacePageStatistic.archivedPages}</p>
-								<p>Pages in trash: {selectedWorkspacePageStatistic.deletedPages}</p>
-								<p>Pinned pages: {selectedWorkspacePageStatistic.pinnedPages}</p>
-								<p>Templates: {selectedWorkspacePageStatistic.templates}</p>
-							</div>
-						</div>
-					</Card>
-				)}
+				{/*{selectedWorkspacePageStatistic && (*/}
+				{/*	<Card>*/}
+				{/*		<div>*/}
+				{/*			<h5>Statistic</h5>*/}
+				{/*			<div className="col">*/}
+				{/*				<p>Total pages: {selectedWorkspacePageStatistic.totalPages}</p>*/}
+				{/*				<p>Archived pages: {selectedWorkspacePageStatistic.archivedPages}</p>*/}
+				{/*				<p>Pages in trash: {selectedWorkspacePageStatistic.deletedPages}</p>*/}
+				{/*				<p>Pinned pages: {selectedWorkspacePageStatistic.pinnedPages}</p>*/}
+				{/*				<p>Templates: {selectedWorkspacePageStatistic.templates}</p>*/}
+				{/*			</div>*/}
+				{/*		</div>*/}
+				{/*	</Card>*/}
+				{/*)}*/}
 			</div>
 		</div>
 	)

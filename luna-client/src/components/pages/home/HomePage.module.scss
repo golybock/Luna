@@ -38,6 +38,13 @@
 	@include horizontalScrollbar;
 }
 
+.searchHeader{
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}
+
 .pageCard{
 	position: relative;
 	width: 100%;
