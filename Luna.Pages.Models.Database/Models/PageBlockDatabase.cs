@@ -10,11 +10,11 @@ public class PageBlockDatabase
 	[BsonId]
 	[BsonElement("_id")]
 	[BsonRepresentation(BsonType.String)]
-	public Guid Id { get; set; }
+	public string Id { get; set; }
 
 	[BsonElement("page_id")]
 	[BsonRepresentation(BsonType.String)]
-	public Guid PageId { get; set; }
+	public string PageId { get; set; }
 
 	[BsonElement("type")]
 	public string Type { get; set; } = null!;
@@ -33,7 +33,7 @@ public class PageBlockDatabase
 
 	[BsonElement("created_by")]
 	[BsonRepresentation(BsonType.String)]
-	public Guid CreatedBy { get; set; }
+	public string CreatedBy { get; set; }
 
 	[BsonElement("updated_by")]
 	[BsonRepresentation(BsonType.String)]
@@ -41,7 +41,7 @@ public class PageBlockDatabase
 
 	[BsonElement("parent_id")]
 	[BsonRepresentation(BsonType.String)]
-	public Guid? ParentId { get; set; }
+	public string? ParentId { get; set; }
 
 	[BsonElement("index")]
 	public int Index { get; set; }

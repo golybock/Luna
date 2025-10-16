@@ -3,12 +3,13 @@ using Luna.Pages.Models.Database.Models;
 using Luna.Pages.Models.View.Models;
 using MongoDB.Bson;
 using System.Text.Json;
+using Luna.Pages.Models.Database.Search;
 
 namespace Luna.Pages.Models.Domain.Models;
 
 public class PageBlockDomain
 {
-	public Guid Id { get; set; }
+	public string Id { get; set; }
 	public Guid PageId { get; set; }
 	public string Type { get; set; } = null!;
 	public object? Content { get; set; }
@@ -25,16 +26,16 @@ public class PageBlockDomain
 		return new PageBlockDomain()
 		{
 			Id = block.Id,
-			PageId = block.PageId,
 			Type = block.Type,
-			Content = block.Content,
+			UpdatedBy = block.UpdatedBy,
+			ParentId = block.ParentId != null ? Guid.Parse(block.ParentId) : null,
+			Index = block.Index,
+			Properties = block.Properties,
+			PageId = Guid.Parse(block.PageId),
+			Content = JsonDocument.Parse(block.Content?.AsBsonDocument?.ToJson() ?? string.Empty),
 			CreatedAt = block.CreatedAt,
 			UpdatedAt = block.UpdatedAt,
-			CreatedBy = block.CreatedBy,
-			UpdatedBy = block.UpdatedBy,
-			ParentId = block.ParentId,
-			Index = block.Index,
-			Properties = block.Properties
+			CreatedBy = Guid.Parse(block.CreatedBy),
 		};
 	}
 
@@ -42,17 +43,17 @@ public class PageBlockDomain
 	{
 		return new PageBlockDomain()
 		{
-			Id = Guid.NewGuid(),
+			Id = blockBlank.Id,
 			Type = blockBlank.Type,
 			PageId = pageId,
-			Content = blockBlank.Content,
-			ParentId = blockBlank.ParentId,
+			Content = blockBlank.Data,
+			ParentId = null,
 			CreatedBy = createdBy,
 			CreatedAt = DateTime.UtcNow,
 			UpdatedAt = DateTime.UtcNow,
 			UpdatedBy = createdBy,
-			Index = blockBlank.Index,
-			Properties = blockBlank.Properties
+			Index = 0,
+			Properties = null
 		};
 	}
 
@@ -61,10 +62,7 @@ public class PageBlockDomain
 		return new PageBlockView()
 		{
 			Id = Id,
-			Content = Content,
-			Index = Index,
-			ParentId = ParentId,
-			Properties = Properties,
+			Data = Content,
 			Type = Type
 		};
 	}
@@ -73,17 +71,28 @@ public class PageBlockDomain
 	{
 		return new PageBlockDatabase()
 		{
-			Id = Id,
+			Id = Id.ToString(),
 			Content = ConvertToBsonDocument(Content),
 			Index = Index,
-			ParentId = ParentId,
+			ParentId = ParentId?.ToString(),
 			Properties = ConvertToBsonDocument(Properties),
 			Type = Type,
-			PageId = PageId,
+			PageId = PageId.ToString(),
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
-			CreatedBy = CreatedBy,
+			CreatedBy = CreatedBy.ToString(),
 			UpdatedBy = UpdatedBy
+		};
+	}
+
+	public PageBlockSearchContent ToSearchDocument()
+	{
+		return new PageBlockSearchContent()
+		{
+			PageId = PageId.ToString(),
+			Content = ConvertToBsonDocument(Content)?.GetElement("text").Value.ToString() ?? "",
+			BlockId = Id,
+			Type = Type
 		};
 	}
 

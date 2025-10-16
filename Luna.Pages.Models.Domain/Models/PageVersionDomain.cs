@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Luna.Pages.Models.Blank.Models;
 using Luna.Pages.Models.Database.Models;
+using Luna.Pages.Models.Database.Search;
 using Luna.Pages.Models.View.Models;
 using MongoDB.Bson;
 
@@ -32,7 +33,7 @@ public class PageVersionDomain
 		};
 	}
 
-	public static PageVersionDomain? FromDatabase(PageVersionDatabase pageVersionDatabase)
+	public static PageVersionDomain FromDatabase(PageVersionDatabase pageVersionDatabase)
 	{
 		return new PageVersionDomain()
 		{
@@ -41,17 +42,17 @@ public class PageVersionDomain
 			Version = pageVersionDatabase.Version,
 			Content = pageVersionDatabase.Content?.Select(bsonValue => new PageBlockDomain()
 			{
-				Id = Guid.Parse(bsonValue["_id"].AsString),
+				Id = bsonValue["_id"].AsString,
 				PageId = Guid.Parse(bsonValue["page_id"].AsString),
 				Index = bsonValue["index"].AsInt32,
-				Content = JsonDocument.Parse(bsonValue["content"].AsBsonDocument.ToJson()),
+				Content = JsonDocument.Parse(bsonValue["content"]?.AsBsonDocument?.ToJson() ?? string.Empty),
 				CreatedAt = bsonValue["created_at"].AsUniversalTime,
 				UpdatedAt = bsonValue["updated_at"].AsUniversalTime,
 				CreatedBy = Guid.Parse(bsonValue["created_by"].AsString),
-				ParentId = bsonValue.AsBsonDocument.TryGetValue("parent_id", out var parent_id) && parent_id.IsBsonDocument
-					? Guid.Parse(parent_id.AsString)
+				ParentId = bsonValue.AsBsonDocument.TryGetValue("parent_id", out BsonValue? parentId) && parentId.IsBsonDocument
+					? Guid.Parse(parentId.AsString)
 					: null,
-				Properties = bsonValue.AsBsonDocument.TryGetValue("properties", out var prop) && prop.IsBsonDocument
+				Properties = bsonValue.AsBsonDocument.TryGetValue("properties", out BsonValue? prop) && prop.IsBsonDocument
 					? prop.AsBsonDocument
 					: null,
 				Type = bsonValue["type"].AsString,
@@ -87,7 +88,7 @@ public class PageVersionDomain
 			Id = Id.ToString(),
 			PageId = PageId.ToString(),
 			Version = Version,
-			Content = new BsonArray(Content?.Select(item => item.ToDatabase().ToBsonDocument()).ToList()),
+			Content = new BsonArray((Content ?? []).Select(item => item.ToDatabase().ToBsonDocument()).ToList()),
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy.ToString(),
@@ -107,6 +108,19 @@ public class PageVersionDomain
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy,
 			ChangeDescription = ChangeDescription
+		};
+	}
+
+	public PageSearchDocument ToSearchDocument(PageDomain pageDomain)
+	{
+		return new PageSearchDocument()
+		{
+			PageId = pageDomain.Id.ToString(),
+			Title = pageDomain.Title,
+			Description = pageDomain.Description,
+			Blocks = (Content ?? []).Select(item => item.ToSearchDocument()),
+			UpdatedAt = UpdatedAt,
+			WorkspaceId = pageDomain.WorkspaceId.ToString()
 		};
 	}
 }

@@ -103,6 +103,8 @@ public class PageDomain
 			Id = Id,
 			Title = Title,
 			Emoji = Emoji,
+			Cover = Cover,
+			Icon = Icon,
 			ChildPages = ChildPages.Select(item => item.ToLightPageView()).ToList()
 		};
 	}
