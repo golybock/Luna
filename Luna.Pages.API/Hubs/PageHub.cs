@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Luna.Pages.Models.Blank.Models;
 using Luna.Pages.Models.View.Models;
-using Luna.Pages.Services.Services;
+using Luna.Pages.Services.Services.PageService;
 using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.Web;
 using Microsoft.AspNetCore.SignalR;
@@ -97,8 +97,7 @@ public class PageHub : HubBase, IPageHub
 
 		await Groups.AddToGroupAsync(connectionId, group);
 
-		PageUsers.AddOrUpdate(pid,
-			_ => new HashSet<Guid> { UserId.Value },
+		PageUsers.AddOrUpdate(pid, _ => [UserId.Value],
 			(_, set) => { set.Add(UserId.Value); return set; });
 
 		UserPages[connectionId] = pid;
@@ -151,10 +150,9 @@ public class PageHub : HubBase, IPageHub
 		};
 
 		bool rs = await _pageService.UpdatePageAsync(request);
-		Console.WriteLine($"Updated: {rs}");
 
 		string group = $"page_{pageId}";
-		await Clients.Group(group).SendAsync("PageUpdated", new { pageId });
+		await Clients.OthersInGroup(group).SendAsync("PageUpdated", new { pageId });
 	}
 
 	public async Task UpdatePageContent(Guid pageId, UpdatePageContentBlank pageContentBlank)
@@ -177,7 +175,7 @@ public class PageHub : HubBase, IPageHub
 		// После обновления вернем свежие блоки
 		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
 		IEnumerable<PageBlockView> blocks = await _pageService.GetPageBlocksAsync(getRequest);
-		await Clients.Group($"page_{pageId}").SendAsync("PageContentUpdated", new { pageId, blocks });
+		await Clients.OthersInGroup($"page_{pageId}").SendAsync("PageContentUpdated", new { pageId, blocks });
 	}
 
 	public async Task GetPageComments(Guid pageId)
@@ -208,9 +206,8 @@ public class PageHub : HubBase, IPageHub
 		};
 		await _pageService.CreatePageCommentAsync(request);
 
-		// Опубликуем свежие комментарии для страницы
 		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
-		var comments = await _pageService.GetPageCommentsAsync(getRequest);
+		IEnumerable<PageCommentView> comments = await _pageService.GetPageCommentsAsync(getRequest);
 		await Clients.Group($"page_{pageId}").SendAsync("PageCommentsUpdated", new { pageId, comments });
 	}
 
@@ -222,7 +219,6 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		// Маппим Create -> Patch для апдейта
 		PatchPageCommentBlank patch = new PatchPageCommentBlank
 		{
 			Content = createPageCommentBlank.Content,

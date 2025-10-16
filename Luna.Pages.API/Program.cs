@@ -4,15 +4,20 @@ using Luna.Pages.Repositories.Repositories.Page.Command;
 using Luna.Pages.Repositories.Repositories.Page.Query;
 using Luna.Pages.Repositories.Repositories.PageVersion.Command;
 using Luna.Pages.Repositories.Repositories.PageVersion.Query;
+using Luna.Pages.Repositories.Repositories.Search.Command;
+using Luna.Pages.Repositories.Repositories.Search.Query;
 using Luna.Pages.Repositories.Repositories.WorkspaceUsers;
 using Luna.Pages.Repositories.WorkspacePermissionRepository;
 using Luna.Pages.Services.PermissionEventHandler;
-using Luna.Pages.Services.Services;
+using Luna.Pages.Services.Services.PageService;
 using Luna.Pages.Services.Services.WorkspacePermissionService;
 using Luna.Tools.Database.Npgsql.Options;
 using Luna.Tools.Exception;
 using Luna.Tools.SharedModels.Models.Kafka;
+using Luna.Tools.SharedModels.Models.Search;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Nest;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +47,7 @@ builder.Services.AddScoped<IWorkspacePermissionService, WorkspacePermissionServi
 builder.Services.AddScoped<IPermissionEventHandler, PermissionEventHandler>();
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
+builder.Services.Configure<ElasticSearchSettings>(builder.Configuration.GetSection("ElasticSearch"));
 builder.Services.AddHostedService<PermissionEventConsumerService>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<PageService>());
@@ -51,6 +57,21 @@ builder.Services.AddStackExchangeRedisCache(options =>
 	options.Configuration = "127.0.0.1:6379";
 	options.InstanceName = "pages:";
 });
+
+builder.Services.AddSingleton<IElasticClient>(sp =>
+{
+	ElasticSearchSettings settings = sp.GetRequiredService<IOptions<ElasticSearchSettings>>().Value;
+	ConnectionSettings? connectionSettings = new ConnectionSettings(new Uri(settings.Url))
+		.DefaultIndex(settings.DefaultIndex)
+		.EnableDebugMode()
+		.PrettyJson()
+		.RequestTimeout(TimeSpan.FromMinutes(1));
+
+	return new ElasticClient(connectionSettings);
+});
+
+builder.Services.AddScoped<IPageSearchCommandRepository, PageSearchCommandRepository>();
+builder.Services.AddScoped<IPageSearchQueryRepository, PageSearchQueryRepository>();
 
 builder.Services.AddSingleton<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 
@@ -104,16 +125,13 @@ WebApplication app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseMiddleware<ExceptionMiddleware>();
-
-app.UseCors();
-
 app.UseWebSockets();
-
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseCors();
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 app.MapHub<PageHub>("/ws/v1/pageHub");
 

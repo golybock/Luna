@@ -1,6 +1,6 @@
 ﻿using Luna.Pages.Models.Blank.Models;
 using Luna.Pages.Models.View.Additional;
-using Luna.Pages.Services.Services;
+using Luna.Pages.Services.Services.PageService;
 using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.Web;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +36,44 @@ public class PagesController : ServiceControllerBase
 		GetRequest request = new GetRequest() {Id = workspaceId, UserId = UserId};
 
 		return await _pageService.SearchPagesByTitleAsync(request, title);
+	}
+
+
+	[HttpGet("[action]")]
+	public async Task<ActionResult<List<LightPageView>>> SearchPages(
+		[FromQuery] string query, [FromQuery] Guid workspaceId,
+		[FromQuery] int from = 0, [FromQuery] int size = 10)
+	{
+		SearchGetRequest request = new SearchGetRequest()
+		{
+			WorkspaceId = workspaceId,
+			Query = query,
+			From = from,
+			Size = size,
+			UserId = UserId
+		};
+
+		List<LightPageView> results = await _pageService.SearchPagesAsync(request);
+
+		return Ok(results);
+	}
+
+	[HttpGet("[action]")]
+	public async Task<ActionResult<List<SearchPageBlockView>>> SearchInBlocks(
+		[FromQuery] string query, [FromQuery] Guid workspaceId,
+		[FromQuery] int from = 0, [FromQuery] int size = 10)
+	{
+		SearchGetRequest request = new SearchGetRequest()
+		{
+			WorkspaceId = workspaceId,
+			Query = query,
+			From = from,
+			Size = size,
+			UserId = UserId
+		};
+
+		List<SearchPageBlockView> results = await _pageService.SearchInBlocksAsync(request);
+		return Ok(results);
 	}
 
 	[HttpGet("[action]")]
