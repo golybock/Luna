@@ -11,10 +11,15 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ closeModal }) => {
+
+	if(!closeModal){
+		throw new Error("Modal doesn't have close method");
+	}
+
 	return (
-		<Modal closeModal={closeModal!}>
+		<Modal closeModal={closeModal}>
 			<div className={styles.container}>
-				<h1>Settings</h1>
+				<h3>Settings</h3>
 				<Tabs defaultActiveTab={0}>
 					<Tab title="Profile">
 						<ProfilePage/>

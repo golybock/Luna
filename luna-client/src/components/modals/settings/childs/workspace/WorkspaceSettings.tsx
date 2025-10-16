@@ -1,20 +1,23 @@
 ﻿import React, { useEffect, useState } from "react";
 import { useWorkspaces } from "@/store/hooks/useWorkspaces";
 import styles from "./WorkspaceSettings.module.scss"
-import { IWorkspaceDetailedView } from "@/types/workspace/IWorkspaceDetailedView";
 import { workspaceHttpProvider } from "@/http/workspaceHttpProvider";
-import { IWorkspaceUserBlank } from "@/types/workspace/IWorkspaceUserBlank";
-import { IWorkspaceBlank } from "@/types/workspace/IWorkspaceBlank";
-import FormInput from "@/components/ui/formInput/FormInput";
 import Image from "next/image";
-import { pageHttpProvider } from "@/http/pageHttpProvider";
+import { WorkspaceUserBlank } from "@/models/workspace/WorkspaceUserBlank";
+import { WorkspaceBlank } from "@/models/workspace/WorkspaceBlank";
+import { WorkspaceDetailedView } from "@/models/workspace/WorkspaceDetailedView";
+import Input from "@/ui/input/Input";
+import Button from "@/ui/button/Button";
+import { useModal } from "@/layout/ModalContext";
+import { InviteUserModal } from "@/components/modals/InviteUser/InviteUserModal";
 
 export const WorkspaceSettings: React.FC = () => {
 
 	const { selectedWorkspaceId } = useWorkspaces();
-	const [workspace, setWorkspace] = useState<IWorkspaceDetailedView>();
-	const [workspaceBlank, setWorkspaceBlank] = useState<IWorkspaceBlank | null>();
-	const [editableUserWorkspace, setEditableUserWorkspace] = useState<IWorkspaceUserBlank | null>();
+	const [workspace, setWorkspace] = useState<WorkspaceDetailedView>();
+	const [workspaceBlank, setWorkspaceBlank] = useState<WorkspaceBlank | null>();
+	const [editableUserWorkspace, setEditableUserWorkspace] = useState<WorkspaceUserBlank | null>();
+	const { openModal } = useModal();
 
 	useEffect(() => {
 		const getWorkspace = async () => {
@@ -63,13 +66,6 @@ export const WorkspaceSettings: React.FC = () => {
 		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 	};
 
-	const getRoleColor = (roles: string[]) => {
-		if (roles.includes('owner')) return styles.roleOwner;
-		if (roles.includes('admin')) return styles.roleAdmin;
-		if (roles.includes('moderator')) return styles.roleModerator;
-		return styles.roleMember;
-	};
-
 	const handleStartEditing = () => {
 		if (!workspaceBlank) {
 			setWorkspaceBlank({ ...workspace });
@@ -89,10 +85,14 @@ export const WorkspaceSettings: React.FC = () => {
 		}
 	};
 
+	const handleInviteClick = () => {
+		openModal(<InviteUserModal/>)
+	};
+
 	return (
 		<div className={styles.container}>
 			<div className="row">
-				<FormInput
+				<Input
 					name="Name"
 					maxLength={50}
 					defaultValue={workspace.name}
@@ -105,7 +105,7 @@ export const WorkspaceSettings: React.FC = () => {
 						}
 					}}
 				/>
-				<FormInput
+				<Input
 					name="Description"
 					maxLength={200}
 					defaultValue={workspace.description}
@@ -118,7 +118,7 @@ export const WorkspaceSettings: React.FC = () => {
 						}
 					}}
 				/>
-				<FormInput
+				<Input
 					name="Users count"
 					defaultValue={(workspace.users.length + 1).toString()}
 					type="number"
@@ -128,22 +128,30 @@ export const WorkspaceSettings: React.FC = () => {
 				<div className={styles.workspaceActions}>
 					{!workspaceBlank ? (
 						<>
-							<button onClick={handleStartEditing}>
+							<Button variant="ghost" onClick={handleStartEditing}>
 								<Image
 									src="/icons/edit_24.svg"
 									width={24}
 									height={24}
 									alt="edit"
 								/>
-							</button>
-							<button>
+							</Button>
+							<Button variant="ghost">
 								<Image
 									src="/icons/trash_24.svg"
 									width={24}
 									height={24}
-									alt="edit"
+									alt="delete"
 								/>
-							</button>
+							</Button>
+							<Button variant="ghost" onClick={handleInviteClick}>
+								<Image
+									src="/icons/plus_24.svg"
+									width={24}
+									height={24}
+									alt="invite"
+								/>
+							</Button>
 						</>
 					) : (
 						<>
@@ -173,9 +181,6 @@ export const WorkspaceSettings: React.FC = () => {
 					<tr>
 						<th>
 							<span>User</span>
-						</th>
-						<th>
-							<span>Role</span>
 						</th>
 						<th>
 							<span>Last active</span>
@@ -222,15 +227,6 @@ export const WorkspaceSettings: React.FC = () => {
 								</div>
 							</td>
 							<td>
-								<div className={styles.roleContainer}>
-									{workspaceUser.roles.map((role, index) => (
-										<span key={index} className={`${styles.roleBadge} ${getRoleColor([role])}`}>
-												{role}
-										</span>
-									))}
-								</div>
-							</td>
-							<td>
 								<span className={styles.lastActive}>
 									{formatLastActive(workspaceUser.user.lastActive)}
 								</span>
@@ -244,9 +240,6 @@ export const WorkspaceSettings: React.FC = () => {
 								<div className={styles.actions}>
 									<button className={styles.actionButton}>
 										⚙️
-									</button>
-									<button className={styles.actionButton}>
-										✉️
 									</button>
 								</div>
 							</td>

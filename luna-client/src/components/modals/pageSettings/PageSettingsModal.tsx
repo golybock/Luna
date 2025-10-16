@@ -1,52 +1,53 @@
-﻿import React, {  useState } from "react";
+﻿import React, { useState } from "react";
 import Modal from "@/components/ui/modal/Modal";
 import styles from "./PageSettingsModal.module.scss";
-import { PageView } from "@/types/page/pageView";
 import Input from "@/ui/input/Input";
 import Button from "@/ui/button/Button";
-import { PageWsProvider } from "@/http/pageWsProvider";
+import Image from "next/image";
 
 interface PageSettingsModalProps {
 	closeModal?: () => void;
-	page: PageView;
+	setPageCover?: (coverUrl: string) => void;
+	cover?: string;
 }
 
-export const PageSettingsModal: React.FC<PageSettingsModalProps> = ({ closeModal, page }) => {
+export const PageSettingsModal: React.FC<PageSettingsModalProps> = ({ closeModal, cover, setPageCover }) => {
 
-	if(!closeModal){
+	if (!closeModal) {
 		throw new Error("Modal doesn't exist");
 	}
 
-	const [pageWsProvider, setPageWsProvider] = useState<PageWsProvider>(new PageWsProvider());
-
-	const [cover, setCover] = useState<string | undefined>(page?.cover);
+	const [innerCover, setInnerCover] = useState<string | undefined>(cover ?? "");
 
 	const handleSave = async () => {
-
 		try {
-			await pageWsProvider.connect();
-			await pageWsProvider.joinPage(page.id);
-			await pageWsProvider.updatePage(page.id, {cover: cover});
-			console.log("Saved");
-			pageWsProvider.leavePage(page.id).catch(() => void 0);
-
+			setPageCover(innerCover);
 			closeModal();
-		}
-		catch (e){
+		} catch (e) {
 			console.error(e);
 		}
 	}
 
 	return (
-		<Modal closeModal={closeModal!}>
+		<Modal closeModal={closeModal}>
 			<div className={styles.container}>
-				<h2>Page settings</h2>
+				<h4>Page cover</h4>
 				<Input
 					label="Cover url"
-					value={cover}
-					onChange={(e) => setCover(e.target.value)}
+					type="url"
+					placeholder="Enter URL"
+					value={innerCover}
+					onChange={(e) => setInnerCover(e.target.value)}
 				/>
-				<Button onClick={handleSave}>Save</Button>
+				{innerCover && (
+					<div>
+						<h5>Preview</h5>
+						<Image src={innerCover} alt="cover" width={250} height={50} />
+					</div>
+				)}
+				<Button onClick={handleSave} variant="primary">
+					Save
+				</Button>
 			</div>
 		</Modal>
 	)
