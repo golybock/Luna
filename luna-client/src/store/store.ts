@@ -13,6 +13,7 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import storage from "redux-persist/lib/storage";
 import { workspacesSlice } from "@/store/slices/workspaceSlice";
 import { authSlice } from "@/store/slices/authSlice";
+import { pagesSlice } from "@/store/slices/pagesSlice";
 
 const persistConfig = {
 	key: "luna",
@@ -22,6 +23,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
 	workspaces: workspacesSlice.reducer,
 	auth: authSlice.reducer,
+	pages: pagesSlice.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

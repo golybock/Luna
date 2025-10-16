@@ -1,18 +1,20 @@
-﻿import { IWorkspaceView } from "@/types/workspace/IWorkspaceView";
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+﻿import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { workspaceHttpProvider } from "@/http/workspaceHttpProvider";
 import { logout } from "@/store/slices/authSlice";
+import { WorkspaceView } from "@/models/workspace/WorkspaceView";
+import { PageStatisticView } from "@/models/page/PageStatisticView";
+import { pageHttpProvider } from "@/http/pageHttpProvider";
 
 interface WorkspaceState {
 	selectedWorkspaceId: string | null;
-	workspaces: IWorkspaceView[],
-	isFetchingWorkspaces: boolean;
+	selectedWorkspacePageStatistic: PageStatisticView | null;
+	workspaces: WorkspaceView[],
 }
 
 const initialState: WorkspaceState = {
 	selectedWorkspaceId: null,
+	selectedWorkspacePageStatistic: null,
 	workspaces: [],
-	isFetchingWorkspaces: false,
 };
 
 export const workspacesSlice = createSlice({
@@ -22,34 +24,41 @@ export const workspacesSlice = createSlice({
 		setSelectedWorkspace: (state, action: PayloadAction<string | null>) => {
 			state.selectedWorkspaceId = action.payload;
 		},
-		setWorkspaces: (state, action: PayloadAction<IWorkspaceView[]>) => {
+		setWorkspaces: (state, action: PayloadAction<WorkspaceView[]>) => {
 			state.workspaces = action.payload;
 		},
 		clearWorkspaces: (state) => {
 			state.workspaces = [];
+			state.selectedWorkspacePageStatistic = null;
 			state.selectedWorkspaceId = null;
 		}
 	},
 	extraReducers: (builder) => {
 		builder
 			.addCase(getAvailableWorkspaces.pending, (state, action) => {
-				state.isFetchingWorkspaces = true;
 			})
-			.addCase(getAvailableWorkspaces.fulfilled, (state, action: PayloadAction<IWorkspaceView[]>) => {
+			.addCase(getAvailableWorkspaces.fulfilled, (state, action: PayloadAction<WorkspaceView[]>) => {
 				state.workspaces = action.payload;
-				state.isFetchingWorkspaces = false;
 			})
 			.addCase(getAvailableWorkspaces.rejected, (state, action) => {
-				state.isFetchingWorkspaces = false;
 			})
-			// Очистка при logout
+			.addCase(getPageStatistic.pending, (state, action) => {
+				state.selectedWorkspacePageStatistic = null;
+			})
+			.addCase(getPageStatistic.fulfilled, (state, action: PayloadAction<PageStatisticView>) => {
+				state.selectedWorkspacePageStatistic = action.payload;
+			})
+			.addCase(getPageStatistic.rejected, (state, action) => {
+				state.selectedWorkspacePageStatistic = null;
+			})
 			.addCase(logout.fulfilled, (state) => {
 				state.workspaces = [];
+				state.selectedWorkspacePageStatistic = null;
 				state.selectedWorkspaceId = null;
 			})
 			.addCase(logout.rejected, (state) => {
-				// Очищаем даже при ошибке logout
 				state.workspaces = [];
+				state.selectedWorkspacePageStatistic = null;
 				state.selectedWorkspaceId = null;
 			});
 	}
@@ -57,8 +66,14 @@ export const workspacesSlice = createSlice({
 
 export const getAvailableWorkspaces = createAsyncThunk(
 	"workspacesSlice/getAvailableWorkspaces",
-	async (): Promise<IWorkspaceView[]> => {
-		console.log("load workspaces");
+	async (): Promise<WorkspaceView[]> => {
 		return await workspaceHttpProvider.getAvailableWorkspaces();
+	}
+);
+
+export const getPageStatistic = createAsyncThunk(
+	"workspacesSlice/getPageStatistic",
+	async (workspaceId: string): Promise<PageStatisticView> => {
+		return await pageHttpProvider.getPageStatistic(workspaceId);
 	}
 );
