@@ -50,7 +50,6 @@ public class BackgroundAuthCodeService : BackgroundService
 
 		consumer.ReceivedAsync += async (ch, ea) =>
 		{
-			Console.WriteLine("rabbitmq message received");
 			try
 			{
 				string content = Encoding.UTF8.GetString(ea.Body.Span);

@@ -19,8 +19,6 @@ public class TokenValidationMiddleware
 	{
 		string? path = context.Request.Path.Value?.ToLower();
 
-		Console.WriteLine(path);
-
 		// Пропускаем запросы к Auth.API
 		if (path != null && path.Contains("/api/v1/auth"))
 		{
