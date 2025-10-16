@@ -72,8 +72,6 @@ public class UserServiceClient : IUserServiceClient, IDisposable
 			GetUsersByIdsRequest request = new GetUsersByIdsRequest();
 			request.UserIds.AddRange(userIds.Select(id => id.ToString()));
 
-			Console.WriteLine(string.Join(" ", request.UserIds));
-
 			GetUsersByIdsResponse? response = await _client.GetUsersByIdsAsync(request, cancellationToken: cancellationToken);
 
 			if (response.Error?.Code != null)
