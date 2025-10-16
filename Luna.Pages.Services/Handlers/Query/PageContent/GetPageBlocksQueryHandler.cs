@@ -1,12 +1,9 @@
 ﻿using System.Text.Json;
 using Luna.Pages.Models.Database.Models;
 using Luna.Pages.Models.Domain.Models;
-using Luna.Pages.Repositories.Repositories.PageVersion;
 using Luna.Pages.Repositories.Repositories.PageVersion.Query;
 using Luna.Pages.Services.Queries.PageContent;
 using MediatR;
-using Microsoft.Extensions.Logging;
-using MongoDB.Bson;
 
 namespace Luna.Pages.Services.Handlers.Query.PageContent;
 
@@ -21,16 +18,13 @@ public class GetPageBlocksQueryHandler : IRequestHandler<GetPageBlocksQuery, IEn
 
 	public async Task<IEnumerable<PageBlockDomain>> Handle(GetPageBlocksQuery request, CancellationToken cancellationToken)
 	{
-		PageVersionDatabase? lastVersion =
-			await _pageVersionQueryRepository.GetLatestPageVersionAsync(request.PageId, cancellationToken);
+		PageVersionDatabase? lastVersion = await _pageVersionQueryRepository.GetLatestPageVersionAsync(request.PageId, cancellationToken);
 
 		if (lastVersion == null)
 		{
 			return [];
 		}
 
-		IEnumerable<PageBlockDatabase> blocksDatabase = JsonSerializer.Deserialize<IEnumerable<PageBlockDatabase>>(lastVersion.Content.ToJson())!;
-
-		return blocksDatabase.Select(PageBlockDomain.FromDatabase);
+		return PageVersionDomain.FromDatabase(lastVersion).Content ?? [];
 	}
 }

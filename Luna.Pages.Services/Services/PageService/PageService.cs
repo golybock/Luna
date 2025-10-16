@@ -8,32 +8,37 @@ using Luna.Pages.Repositories.Repositories.Page.Query;
 using Luna.Pages.Services.Commands.Page;
 using Luna.Pages.Services.Commands.PageComment;
 using Luna.Pages.Services.Commands.PageContent;
+using Luna.Pages.Services.Commands.Search;
 using Luna.Pages.Services.Queries.Page;
 using Luna.Pages.Services.Queries.PageComment;
 using Luna.Pages.Services.Queries.PageContent;
+using Luna.Pages.Services.Queries.Search;
 using Luna.Pages.Services.Services.WorkspacePermissionService;
 using Luna.Tools.SharedModels.Models;
 using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.SharedModels.Models.Exceptions;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
-namespace Luna.Pages.Services.Services;
+namespace Luna.Pages.Services.Services.PageService;
 
 public class PageService : IPageService
 {
 	private readonly IMediator _mediator;
 	private readonly IWorkspacePermissionService _workspacePermissionService;
 	private readonly IPageQueryRepository _pageQueryRepository;
+	private readonly ILogger<PageService> _logger;
 
 	public PageService(
 		IMediator mediator,
 		IWorkspacePermissionService workspacePermissionService,
-		IPageQueryRepository pageQueryRepository
-	)
+		IPageQueryRepository pageQueryRepository,
+		ILogger<PageService> logger)
 	{
 		_mediator = mediator;
 		_workspacePermissionService = workspacePermissionService;
 		_pageQueryRepository = pageQueryRepository;
+		_logger = logger;
 	}
 
 	public async Task<Guid> CreatePageAsync(BlankRequest<CreatePageBlank> request)
@@ -41,7 +46,24 @@ public class PageService : IPageService
 		await CheckPermissionByWorkspaceIdAsync(request.Blank.WorkspaceId, request.UserId, WorkspacePermissions.Edit);
 
 		CreatePageCommand command = new CreatePageCommand(request.UserId, request.Blank);
-		return await _mediator.Send(command, CancellationToken.None);
+
+		Guid pageId = await _mediator.Send(command, CancellationToken.None);
+
+		PageDomain newPageIndex = PageDomain.FromBlank(pageId, request.UserId, request.Blank);
+
+		IndexPageCommand indexPageCommand = new IndexPageCommand(new PageVersionDomain(), newPageIndex);
+
+		// пробуем индексировать при создании
+		try
+		{
+			await _mediator.Send(indexPageCommand, CancellationToken.None);
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine(e);
+		}
+
+		return pageId;
 	}
 
 	public async Task<bool> MovePageAsync(BlankRequest<MovePageBlank> request)
@@ -73,6 +95,9 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
 
 		DeletePageCommand command = new DeletePageCommand(request.ObjectId, request.UserId);
+		DeletePageIndexCommand deletePageIndexCommand = new DeletePageIndexCommand(request.ObjectId.ToString());
+
+		await _mediator.Send(deletePageIndexCommand, CancellationToken.None);
 		return await _mediator.Send(command, CancellationToken.None);
 	}
 
@@ -81,7 +106,20 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
 
 		UpdatePageCommand command = new UpdatePageCommand(request.ObjectId, request.Blank);
-		return await _mediator.Send(command, CancellationToken.None);
+
+		bool updated = await _mediator.Send(command, CancellationToken.None);
+
+		// todo: похоже на костыль
+		PageFullDomain? pageFull = await GetPageFullDomainAsync(new GetRequest(){Id = request.ObjectId, UserId = request.UserId});
+
+		if (pageFull != null)
+		{
+			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
+			bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
+			_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+		}
+
+		return updated;
 	}
 
 	public async Task<bool> UpdatePageContentAsync(UpdateRequest<UpdatePageContentBlank> request)
@@ -89,7 +127,20 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
 
 		UpdatePageContentCommand command = new UpdatePageContentCommand(request.ObjectId, request.UserId, request.Blank);
-		return await _mediator.Send(command, CancellationToken.None);
+
+		bool updated = await _mediator.Send(command, CancellationToken.None);
+
+		// todo: похоже на костыль
+		PageFullDomain? pageFull = await GetPageFullDomainAsync(new GetRequest(){Id = request.ObjectId, UserId = request.UserId});
+
+		if (pageFull != null)
+		{
+			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
+			bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
+			_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+		}
+
+		return updated;
 	}
 
 	public async Task<bool> CreatePageCommentAsync(BlankRequest<CreatePageCommentBlank> request)
@@ -102,7 +153,8 @@ public class PageService : IPageService
 
 	public async Task<bool> UpdatePageCommentAsync(UpdateRequest<PatchPageCommentBlank> request)
 	{
-		UpdatePageCommentCommand command = new UpdatePageCommentCommand(request.ObjectId, request.UserId, request.Blank);
+		UpdatePageCommentCommand
+			command = new UpdatePageCommentCommand(request.ObjectId, request.UserId, request.Blank);
 		return await _mediator.Send(command, CancellationToken.None);
 	}
 
@@ -154,6 +206,17 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
 
 		return pageFullDomain?.ToView();
+	}
+
+	public async Task<PageFullDomain?> GetPageFullDomainAsync(GetRequest request)
+	{
+		GetPageFullViewQuery query = new GetPageFullViewQuery(request.Id);
+
+		PageFullDomain? pageFullDomain = await _mediator.Send(query, CancellationToken.None);
+
+		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
+
+		return pageFullDomain;
 	}
 
 	public async Task<IEnumerable<LightPageView>> GetWorkspacePagesAsync(GetRequest request,
@@ -226,18 +289,57 @@ public class PageService : IPageService
 	{
 		GetWorkspacePageStatisticsQuery query = new GetWorkspacePageStatisticsQuery(request.Id);
 
-		PageStatistics statistics = await _mediator.Send(query, CancellationToken.None);
-
 		await CheckPermissionByWorkspaceIdAsync(request.Id, request.UserId, WorkspacePermissions.View);
 
+		PageStatistics statistics = await _mediator.Send(query, CancellationToken.None);
+
 		return statistics.ToView();
+	}
+
+	// при ошибке в ES идем искать в бд
+	public async Task<List<LightPageView>> SearchPagesAsync(SearchGetRequest request)
+	{
+		IEnumerable<LightPageView> pages;
+
+		SearchPageQuery queryPage = new SearchPageQuery(request.Query, request.WorkspaceId, request.From, request.Size);
+
+		await CheckPermissionByWorkspaceIdAsync(request.WorkspaceId, request.UserId, WorkspacePermissions.View);
+
+		try
+		{
+			pages = await _mediator.Send(queryPage, CancellationToken.None);
+		}
+		catch (Exception e)
+		{
+			pages = await SearchPagesByTitleAsync(
+				new GetRequest()
+				{
+					Id = request.WorkspaceId,
+					UserId = request.UserId
+				},
+				request.Query,
+				request.Size
+			);
+		}
+
+		return pages.ToList();
+	}
+
+	public async Task<List<SearchPageBlockView>> SearchInBlocksAsync(SearchGetRequest request)
+	{
+		SearchInBlocksQuery queryPage =
+			new SearchInBlocksQuery(request.Query, request.WorkspaceId, request.From, request.Size);
+
+		await CheckPermissionByWorkspaceIdAsync(request.WorkspaceId, request.UserId, WorkspacePermissions.View);
+
+		return await _mediator.Send(queryPage, CancellationToken.None);
 	}
 
 	private async Task CheckPermissionAsync(Guid pageId, Guid userId, string workspacePermission)
 	{
 		PageDatabase? page = await _pageQueryRepository.GetPageByIdAsync(pageId);
 
-		if(page == null) throw new NotFoundException("Page not found");
+		if (page == null) throw new NotFoundException("Page not found");
 
 		bool available = await _workspacePermissionService.HasPermissionAsync(new Guid(page.WorkspaceId), userId,
 			workspacePermission);

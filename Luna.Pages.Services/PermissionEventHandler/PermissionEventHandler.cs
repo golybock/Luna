@@ -83,7 +83,7 @@ public class PermissionEventHandler : IPermissionEventHandler
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error processing DeletedById event");
+			_logger.LogError(ex, "Error processing HandleCreatedEvent event");
 			throw;
 		}
 	}
@@ -113,7 +113,7 @@ public class PermissionEventHandler : IPermissionEventHandler
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error processing DeletedById event");
+			_logger.LogError(ex, "Error processing HandleUpdatedEvent event");
 			throw;
 		}
 	}

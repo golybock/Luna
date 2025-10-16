@@ -3,7 +3,7 @@ using Luna.Pages.Models.View.Additional;
 using Luna.Pages.Models.View.Models;
 using Luna.Tools.SharedModels.Models.API;
 
-namespace Luna.Pages.Services.Services;
+namespace Luna.Pages.Services.Services.PageService;
 
 public interface IPageService
 {
@@ -37,4 +37,8 @@ public interface IPageService
 	Task<IEnumerable<PageCommentView>> GetPageCommentsAsync(GetRequest request);
 
 	Task<PageStatisticView> GetWorkspacePageStatisticsAsync(GetRequest request);
+
+	// Search queries
+	Task<List<LightPageView>> SearchPagesAsync(SearchGetRequest request);
+	Task<List<SearchPageBlockView>> SearchInBlocksAsync(SearchGetRequest request);
 }

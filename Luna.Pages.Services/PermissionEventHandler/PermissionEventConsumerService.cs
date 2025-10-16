@@ -31,6 +31,8 @@ public class PermissionEventConsumerService : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+
 		_logger.LogInformation("Starting Permission Event Consumer Service");
 		_logger.LogInformation("Kafka Settings: {Settings}", JsonSerializer.Serialize(_kafkaSettings));
 
@@ -83,8 +85,7 @@ public class PermissionEventConsumerService : BackgroundService
 			EnablePartitionEof = false,
 			ClientId = $"{_kafkaSettings.ClientId}-consumer",
 			StatisticsIntervalMs = 5000,
-			SocketTimeoutMs = 10000,
-			ApiVersionRequest = true
+			SocketTimeoutMs = 10000
 		};
 
 		_consumer = new ConsumerBuilder<string, string>(config)
