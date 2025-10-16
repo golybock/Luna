@@ -8,7 +8,6 @@ public class VerificationCodeRepository : IVerificationCodeRepository
 {
 	private readonly IDatabase _redisDatabase;
 
-
 	public VerificationCodeRepository(string connectionString)
 	{
 		ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(connectionString);

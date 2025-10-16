@@ -81,8 +81,8 @@ builder.Services.AddSingleton(jwtOptions);
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-	options.Configuration = "127.0.0.1:6379";
-	options.InstanceName = "workspaces:";
+	options.Configuration = "redis:6379,password=system";
+	options.InstanceName = "auth:";
 });
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
