@@ -18,7 +18,7 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	background: var(--secondary-container);
+	background: var(--primary-container);
 	max-width: var(--modal-container-max-width);
 	border-radius: var(--modal-container-border-radius);
 	border: 1px solid var(--teriary-container);
@@ -27,18 +27,16 @@
 	height: var(--modal-container-height);
 	right: var(--modal-container-right);
 	top: var(--modal-container-top);
-	padding-bottom: var(--modal-container-padding-bottom);
+	padding: 48px;
+	//padding-bottom: var(--modal-container-padding-bottom);
 
 	@media screen and (max-width: $desktop-width) {
-		width: var(--modal-container-width);
-		height: var(--modal-container-height);
 		bottom: var(--modal-container-bottom);
 		padding-top: var(--modal-container-padding-top);
 		border-radius: var(--modal-container-border-radius);
 		overflow: hidden;
 		box-sizing: border-box;
 		justify-content: flex-end;
-		top: var(--modal-container-top);
 	}
 }
 

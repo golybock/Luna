@@ -1,11 +1,11 @@
 ﻿import React from "react";
-import { IMenuItem } from "@/types/IMenuItem";
 import Link from "next/link";
-import styles from "./MenuItem.module.scss";
+import styles from "./MenuItemLink.module.scss";
 import Label from "@/ui/label/Label";
+import { MenuItem } from "@/models/ui/MenuItem";
 
 interface PageMenuItemProps {
-	item: IMenuItem;
+	item: MenuItem;
 }
 
 export const PageMenuItem: React.FC<PageMenuItemProps> = ({ item }) => {
