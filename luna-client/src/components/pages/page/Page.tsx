@@ -1,9 +1,7 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback } from "react";
 import Card from "@/ui/card/Card";
-import { PageFullView } from "@/types/page/pageFullView";
-import { PageWsProvider } from "@/http/pageWsProvider";
 import Image from "next/image";
 import Input from "@/ui/input/Input";
 import styles from "./Page.module.scss";
@@ -11,9 +9,10 @@ import { useModal } from "@/layout/ModalContext";
 import { PageSettingsModal } from "@/components/modals/pageSettings/PageSettingsModal";
 import Button from "@/ui/button/Button";
 import { EmojiPicker } from "@/ui/emojiPicker/EmpojiPicker";
-import { PageEditor } from "@/components/ui/pageEditor/PageEditor";
-import { EditorBlock } from "@/types/pageEditor/editorBlock";
-import { PageBlockBlank } from "@/types/page/pageBlockBlank";
+import { usePageWs } from "@/hooks/usePageWs";
+import { Editor } from "@/components/editor/Editor";
+import { PageBlockView } from "@/models/page/view/PageBlockView";
+import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
 
 interface PageProps {
 	pageId: string;
@@ -21,107 +20,126 @@ interface PageProps {
 
 export const Page: React.FC<PageProps> = ({ pageId }) => {
 
-
-	const [pageWsProvider, setPageWsProvider] = useState<PageWsProvider>(new PageWsProvider());
-
-	const [page, setPage] = useState<PageFullView>();
-
 	const { openModal } = useModal();
 
-	const [emoji, setEmoji] = useState<string>();
-	const [blocks, setBlocks] = useState<EditorBlock[]>([]);
+	const {
+		page,
+		blocks,
+		emoji,
+		pageTitle,
+		cover,
+		description,
+		isConnecting,
+		error,
+		setEmoji,
+		status,
+		setPageTitle,
+		setDescription,
+		setCover,
+		saveBlocks,
+		savePageData,
+	} = usePageWs(pageId, {
+		autoConnect: true,
+		autoFetchData: true,
+		onConnected: () => console.log('Connected!'),
+		onError: (err) => console.error('Connection error:', err)
+	});
 
-	useEffect(() => {
-		let isActive = true;
+	const handleTitleChange = async (e: ChangeEvent<HTMLInputElement>) => {
+		setPageTitle(e.target.value);
+		await savePageData({ title: e.currentTarget.value });
+	};
 
-		const handlePageData = (data: PageFullView) => {
-			if (!isActive) return;
-			setPage(data);
-			setBlocks(data?.pageVersionView?.content ?? []);
-			setEmoji(data.page.emoji)
-		};
+	const handleCoverChange = async (cover: string | null) => {
+		setCover(cover);
+		await savePageData({ cover: cover });
+	};
 
-		(async () => {
-			try {
-				await pageWsProvider.connect();
-				await pageWsProvider.joinPage(pageId);
-				pageWsProvider.onPageData(handlePageData);
-				await pageWsProvider.getPageData(pageId);
-			} catch (e) {
-				console.error("Failed to init page ws", e);
-			}
-		})();
+	const handleDescriptionChange = async (e: ChangeEvent<HTMLInputElement>) => {
+		setDescription(e.target.value);
+		await savePageData({ description: e.currentTarget.value });
+	};
 
-		return () => {
-			isActive = false;
-			pageWsProvider.leavePage(pageId).catch(() => void 0);
-		};
-	}, [pageId]);
+	const handleEmojiChange = async (emoji: string) => {
+		setEmoji(emoji);
+		await savePageData({ emoji: emoji });
+	};
+
+	const handleEditorChange = useCallback(async (newBlocks: PageBlockBlank[] | PageBlockView[]) => {
+		await saveBlocks(newBlocks);
+	}, []);
 
 	const handleOpenSettings = () => {
-		if(page){
-			openModal(<PageSettingsModal page={page.page}/>)
+		if (page) {
+			openModal(<PageSettingsModal cover={cover} setPageCover={handleCoverChange}/>)
 		}
-	}
+	};
 
-	const handleSaveBlocks = async (e: EditorBlock[]) => {
-		setBlocks(e);
-
-		const pageBlocks = e.map((item) => {
-			return {...item} as PageBlockBlank;
-		})
-
-		await pageWsProvider.connect();
-		await pageWsProvider.joinPage(pageId);
-
-		try {
-			await pageWsProvider.updatePageContent(pageId, {blocks: pageBlocks, changeDescription: "Update"})
-			console.log("update page")
-		}
-		catch (e){
-			console.error(e);
-		}
-		await pageWsProvider.leavePage(pageId);
-	}
+	if (isConnecting) return <div>Подключение...</div>;
+	if (error) return <div>Ошибка: {error.message}</div>;
+	if (!page) return <div>Загрузка...</div>;
 
 	return (
 		<div className={styles.container}>
-			{page?.page.cover && (
-				<div className={styles.imageContainer}>
-					<Image src={page.page.cover} alt={"cover"} width={1000} height={200}/>
+
+			<div className={styles.status}>
+				<p>{status}</p>
+			</div>
+
+			<div className={styles.imageContainer}>
+				{cover && (
+					<Image
+						src={cover}
+						alt="cover"
+						width={2000}
+						height={200}
+					/>
+				)}
+				<div className={styles.changeImageButton} onClick={handleOpenSettings}>
+					<Button variant="ghost" size="small">
+						<p>Change cover</p>
+					</Button>
 				</div>
-			)}
+			</div>
+
 			<div className={styles.content}>
-				<Card>
+				<Card className={styles.card}>
 					{page && (
 						<div className={styles.mainContent}>
 							<div className={styles.mainContentData}>
 								<div className={styles.title}>
 									<div className={styles.emoji}>
-										<EmojiPicker value={emoji} onChange={setEmoji} />
+										<EmojiPicker
+											value={emoji}
+											onChange={handleEmojiChange}
+										/>
 									</div>
-									<Input value={page.page?.title}/>
-								</div>
-								<Input value={page.page?.description} placeholder={"Enter description here"}/>
-							</div>
-							<div className={styles.mainContentActions}>
-								<Button variant="ghost" onClick={handleOpenSettings}>
-									<Image
-										src={"/icons/settings_24.svg"}
-										alt="settings"
-										width={24}
-										height={24}
+									<Input
+										value={pageTitle}
+										onChange={handleTitleChange}
 									/>
-								</Button>
-								<p>Ver: {page.pageVersionView?.version}</p>
+								</div>
+								<div className={styles.description}>
+									<Input
+										value={description ?? ""}
+										placeholder={"Enter description here"}
+										onChange={handleDescriptionChange}
+									/>
+								</div>
 							</div>
 						</div>
 					)}
 				</Card>
-				<PageEditor
-					value={blocks}
-					onChange={handleSaveBlocks}
-				/>
+				<div>
+					<Editor
+						onChange={handleEditorChange}
+						data={{
+							blocks: blocks,
+							time: Date.now(),
+							version: page.pageVersionView?.version
+						}}
+					/>
+				</div>
 			</div>
 		</div>
 	)
