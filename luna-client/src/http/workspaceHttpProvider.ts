@@ -1,8 +1,10 @@
 ﻿import { HttpProviderBase} from "./httpProviderBase";
-import { IWorkspaceView } from "@/types/workspace/IWorkspaceView";
-import { IWorkspaceBlank } from "@/types/workspace/IWorkspaceBlank";
-import { IWorkspaceUserBlank } from "@/types/workspace/IWorkspaceUserBlank";
-import { IWorkspaceDetailedView } from "@/types/workspace/IWorkspaceDetailedView";
+import { WorkspaceView } from "@/models/workspace/WorkspaceView";
+import { WorkspaceDetailedView } from "@/models/workspace/WorkspaceDetailedView";
+import { WorkspaceUserBlank } from "@/models/workspace/WorkspaceUserBlank";
+import { WorkspaceBlank } from "@/models/workspace/WorkspaceBlank";
+import { InviteUserBlank } from "@/models/invite/InviteUserBlank";
+import { InviteUserView } from "@/models/invite/InviteUserView";
 
 class WorkspaceHttpProvider extends HttpProviderBase {
 
@@ -10,28 +12,23 @@ class WorkspaceHttpProvider extends HttpProviderBase {
 		super()
 	}
 
-	async getWorkspace(workspaceId: string): Promise<IWorkspaceView> {
-		return this.get<IWorkspaceView>(`/workspace/getWorkspace?workspaceId=${workspaceId}`);
+	async getWorkspace(workspaceId: string): Promise<WorkspaceView> {
+		return this.get<WorkspaceView>(`/workspace/getWorkspace?workspaceId=${workspaceId}`);
 	}
 
-	async getWorkspaceDetailed(workspaceId: string): Promise<IWorkspaceDetailedView> {
-		return this.get<IWorkspaceDetailedView>(`/workspace/getWorkspaceDetailed?workspaceId=${workspaceId}`);
+	async getWorkspaceDetailed(workspaceId: string): Promise<WorkspaceDetailedView> {
+		return this.get<WorkspaceDetailedView>(`/workspace/getWorkspaceDetailed?workspaceId=${workspaceId}`);
 	}
 
-	async getAvailableWorkspaces(): Promise<IWorkspaceView[]> {
-		return this.get<IWorkspaceView[]>("/Workspace/GetAvailableWorkspaces");
+	async getAvailableWorkspaces(): Promise<WorkspaceView[]> {
+		return this.get<WorkspaceView[]>("/Workspace/GetAvailableWorkspaces");
 	}
 
-	async getAvailableWorkspacesDetailed(): Promise<IWorkspaceDetailedView[]> {
-		return this.get<IWorkspaceDetailedView[]>("/Workspace/GetAvailableWorkspacesDetailed");
-	}
-
-
-	async createWorkspace(workspaceBlank: IWorkspaceBlank): Promise<string> {
+	async createWorkspace(workspaceBlank: WorkspaceBlank): Promise<string> {
 		return this.post(`/workspace/createWorkspace`, workspaceBlank);
 	}
 
-	async updateWorkspace(workspaceId: string, workspaceBlank: IWorkspaceBlank): Promise<void> {
+	async updateWorkspace(workspaceId: string, workspaceBlank: WorkspaceBlank): Promise<void> {
 		return this.put(`/workspace/updateWorkspace?workspaceId=${workspaceId}`, workspaceBlank);
 	}
 
@@ -39,20 +36,28 @@ class WorkspaceHttpProvider extends HttpProviderBase {
 		return this.delete(`/workspace/deleteWorkspace?workspaceId=${workspaceId}`);
 	}
 
-	async inviteUserToWorkspace(workspaceUserBlank: IWorkspaceUserBlank): Promise<string> {
-		return this.post(`/workspace/inviteUserToWorkspace`, workspaceUserBlank);
+	async inviteUserToWorkspace(inviteUserBlank: InviteUserBlank): Promise<InviteUserView> {
+		return this.post<InviteUserView>(`/workspace/inviteUserToWorkspace`, inviteUserBlank);
 	}
 
-	async getWorkspaceInvite(inviteId: string): Promise<IWorkspaceUserBlank> {
-		return this.get(`/workspace/inviteUserToWorkspace?inviteId=${inviteId}`);
+	async getWorkspaceByInvite(inviteId: string): Promise<WorkspaceView> {
+		return this.get(`/workspace/GetWorkspaceByInvite?inviteId=${inviteId}`);
 	}
 
-	async updateWorkspaceUser(workspaceUserId: string, workspaceUserBlank: IWorkspaceUserBlank): Promise<void> {
+	async acceptInvite(inviteId: string): Promise<void> {
+		return this.post(`/workspace/AcceptInvite?inviteId=${inviteId}`);
+	}
+
+	async updateWorkspaceUser(workspaceUserId: string, workspaceUserBlank: WorkspaceUserBlank): Promise<void> {
 		return this.put(`/workspace/updateWorkspaceUser?workspaceUserId=${workspaceUserId}`, workspaceUserBlank);
 	}
 
 	async deleteWorkspaceUser(workspaceUserId: string): Promise<void> {
 		return this.delete(`/workspace/deleteWorkspaceUser?workspaceUserId=${workspaceUserId}`);
+	}
+
+	async getAvailableWorkspacePermissions()  : Promise<string[]> {
+		return this.get(`/workspace/GetAvailableWorkspacePermissions`);
 	}
 }
 

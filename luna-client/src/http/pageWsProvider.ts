@@ -1,15 +1,24 @@
 ﻿import * as signalR from "@microsoft/signalr";
-import { UpdatePageContentBlank } from "@/types/page/updatePageContentBlank";
-import { PatchPageBlank } from "@/types/page/patchPageBlank";
-import { CreatePageCommentBlank } from "@/types/page/createPageCommentBlank";
-import { PatchPageCommentBlank } from "@/types/page/patchPageCommentBlank";
-import { PageFullView } from "@/types/page/pageFullView";
-import { PageBlockView } from "@/types/page/pageBlockView";
+import { PatchPageBlank } from "@/models/page/blank/PatchPageBlank";
+import { UpdatePageContentBlank } from "@/models/page/blank/UpdatePageContentBlank";
+import { CreatePageCommentBlank } from "@/models/page/blank/CreatePageCommentBlank";
+import { PatchPageCommentBlank } from "@/models/page/blank/PatchPageCommentBlank";
+import { PageFullView } from "@/models/page/view/PageFullView";
+import { PageBlockView } from "@/models/page/view/PageBlockView";
+
+type EventHandler<T = any> = (payload: T) => void;
+
+interface EventHandlers {
+	[eventName: string]: EventHandler[];
+}
 
 export class PageWsProvider {
 	private connection: signalR.HubConnection | null = null;
 	private readonly baseUrl: string;
 	private readonly hubPath: string = "/ws/v1/pageHub";
+	private eventHandlers: EventHandlers = {};
+	private isConnecting: boolean = false;
+	private connectionPromise: Promise<void> | null = null;
 
 	constructor() {
 		this.baseUrl = process.env.NEXT_PUBLIC_PAGES_WS_HOST ?? "http://localhost:8000";
@@ -20,8 +29,26 @@ export class PageWsProvider {
 	}
 
 	async connect(): Promise<void> {
+		// Если уже подключены, ничего не делаем
 		if (this.isConnected()) return;
 
+		// Если идет процесс подключения, ждем его завершения
+		if (this.isConnecting && this.connectionPromise) {
+			return this.connectionPromise;
+		}
+
+		this.isConnecting = true;
+		this.connectionPromise = this._connect();
+
+		try {
+			await this.connectionPromise;
+		} finally {
+			this.isConnecting = false;
+			this.connectionPromise = null;
+		}
+	}
+
+	private async _connect(): Promise<void> {
 		this.connection = new signalR.HubConnectionBuilder()
 			.withUrl(`${this.baseUrl}${this.hubPath}`, {
 				withCredentials: true
@@ -36,13 +63,17 @@ export class PageWsProvider {
 			.build();
 
 		this.wireDefaultLogging();
+		this.wireReconnectionHandlers();
 
 		await this.connection.start();
 	}
 
 	async disconnect(): Promise<void> {
 		if (!this.connection) return;
+
 		try {
+			// Отписываемся от всех событий
+			this.removeAllEventHandlers();
 			await this.connection.stop();
 		} finally {
 			this.connection = null;
@@ -100,33 +131,138 @@ export class PageWsProvider {
 		await this.connection!.invoke("DeleteComment", commentId);
 	}
 
-	// Event subscriptions (client methods)
-	onUserJoinedPage(handler: (payload: { userId: string, pageId: string }) => void) { this.on("UserJoinedPage", handler); }
-	onUserLeftPage(handler: (payload: { userId: string, pageId: string }) => void) { this.on("UserLeftPage", handler); }
-	onPageData(handler: (page: PageFullView) => void) { this.on("PageData", handler); }
-	onPageUpdated(handler: (payload: { pageId: string }) => void) { this.on("PageUpdated", handler); }
-	onPageContentUpdated(handler: (payload: { pageId: string, blocks: PageBlockView[] }) => void) { this.on("PageContentUpdated", handler); }
-	onPageComments(handler: (payload: { pageId: string, comments: any[] }) => void) { this.on("PageComments", handler); }
-	onPageCommentsUpdated(handler: (payload: { pageId: string, comments: any[] }) => void) { this.on("PageCommentsUpdated", handler); }
-	onCommentUpdated(handler: (payload: { commentId: string }) => void) { this.on("CommentUpdated", handler); }
-	onCommentDeleted(handler: (payload: { commentId: string }) => void) { this.on("CommentDeleted", handler); }
-	onPong(handler: (payload: any) => void) { this.on("Pong", handler); }
+	// Event subscriptions (client methods) - улучшенные версии
+	onUserJoinedPage(handler: EventHandler<{ userId: string, pageId: string }>) {
+		return this.on("UserJoinedPage", handler);
+	}
 
-	private on<T = any>(event: string, handler: (payload: T) => void) {
-		if (!this.connection) return;
+	onUserLeftPage(handler: EventHandler<{ userId: string, pageId: string }>) {
+		return this.on("UserLeftPage", handler);
+	}
+
+	onPageData(handler: EventHandler<PageFullView>) {
+		return this.on("PageData", handler);
+	}
+
+	onPageUpdated(handler: EventHandler<{ pageId: string }>) {
+		return this.on("PageUpdated", handler);
+	}
+
+	onPageContentUpdated(handler: EventHandler<{ pageId: string, blocks: PageBlockView[] }>) {
+		return this.on("PageContentUpdated", handler);
+	}
+
+	onPageComments(handler: EventHandler<{ pageId: string, comments: any[] }>) {
+		return this.on("PageComments", handler);
+	}
+
+	onPageCommentsUpdated(handler: EventHandler<{ pageId: string, comments: any[] }>) {
+		return this.on("PageCommentsUpdated", handler);
+	}
+
+	onCommentUpdated(handler: EventHandler<{ commentId: string }>) {
+		return this.on("CommentUpdated", handler);
+	}
+
+	onCommentDeleted(handler: EventHandler<{ commentId: string }>) {
+		return this.on("CommentDeleted", handler);
+	}
+
+	onPong(handler: EventHandler<any>) {
+		return this.on("Pong", handler);
+	}
+
+	private on<T = any>(event: string, handler: EventHandler<T>): () => void {
+		if (!this.connection) {
+			console.warn(`[PageWs] Cannot subscribe to ${event}: no connection`);
+			return () => {};
+		}
+
+		if (!this.eventHandlers[event]) {
+			this.eventHandlers[event] = [];
+		}
+		this.eventHandlers[event].push(handler);
+
 		this.connection.on(event, handler as any);
+
+		return () => this.off(event, handler);
 	}
 
-	private wireDefaultLogging() {
+	off<T = any>(event: string, handler: EventHandler<T>): void {
 		if (!this.connection) return;
-		this.connection.onreconnected((id) => console.info("[PageWs] Reconnected", id));
-		this.connection.onreconnecting((e) => console.warn("[PageWs] Reconnecting", e));
-		this.connection.onclose((e) => console.warn("[PageWs] Closed", e));
+
+		if (this.eventHandlers[event]) {
+			this.eventHandlers[event] = this.eventHandlers[event].filter(h => h !== handler);
+		}
+
+		this.connection.off(event, handler as any);
 	}
 
-	private async ensureConnected() {
+	offEvent(event: string): void {
+		if (!this.connection) return;
+
+		const handlers = this.eventHandlers[event] || [];
+		handlers.forEach(handler => {
+			this.connection!.off(event, handler as any);
+		});
+
+		delete this.eventHandlers[event];
+	}
+
+	private removeAllEventHandlers(): void {
+		if (!this.connection) return;
+
+		Object.keys(this.eventHandlers).forEach(event => {
+			this.offEvent(event);
+		});
+
+		this.eventHandlers = {};
+	}
+
+	private resubscribeAllHandlers(): void {
+		if (!this.connection) return;
+
+		Object.keys(this.eventHandlers).forEach(event => {
+			const handlers = this.eventHandlers[event];
+			handlers.forEach(handler => {
+				this.connection!.on(event, handler as any);
+			});
+		});
+	}
+
+	private wireReconnectionHandlers(): void {
+		if (!this.connection) return;
+
+		this.connection.onreconnected((connectionId) => {
+			console.info("[PageWs] Reconnected", connectionId);
+			this.resubscribeAllHandlers();
+		});
+	}
+
+	private wireDefaultLogging(): void {
+		if (!this.connection) return;
+
+		this.connection.onreconnecting((error) => {
+			console.warn("[PageWs] Reconnecting", error);
+		});
+
+		this.connection.onclose((error) => {
+			console.warn("[PageWs] Closed", error);
+			this.eventHandlers = {};
+		});
+	}
+
+	private async ensureConnected(): Promise<void> {
 		if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
 			await this.connect();
 		}
+	}
+
+	getConnectionState(): signalR.HubConnectionState | null {
+		return this.connection?.state ?? null;
+	}
+
+	isConnectingNow(): boolean {
+		return this.isConnecting;
 	}
 }
