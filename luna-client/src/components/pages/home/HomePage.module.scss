@@ -1,4 +1,6 @@
-﻿.container{
+﻿@import "src/styles/variables";
+
+.container{
 	height: 100%;
 	display: flex;
 	flex-direction: column;
@@ -24,21 +26,36 @@
 	display: flex;
 	flex-direction: column;
 	width: 100%;
+	gap: 8px;
 }
 
 .pagesCarousel{
 	display: flex;
 	flex-direction: row;
+	width: 100%;
 	gap: 16px;
+
+	@include horizontalScrollbar;
 }
 
 .pageCard{
-	width: 100px;
-	height: 100px;
+	position: relative;
+	width: 100%;
+	max-width: 150px;
+	min-width: 150px;
+	height: 150px;
+	cursor: pointer;
+
+	img{
+		position: absolute;
+		border-radius: 12px 12px 0 0;
+	}
 
 	&Content{
 		display: flex;
+		padding: 8px;
 		height: 100%;
+		margin-top: 56px;
 		flex-direction: column;
 	}
 }
