@@ -115,8 +115,15 @@ public class PageService : IPageService
 		if (pageFull != null)
 		{
 			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
-			bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
-			_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+			try
+			{
+				bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
+				_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+			}
+			catch (Exception e)
+			{
+				_logger.LogError("Error indexing Page Content: {Error}", e);
+			}
 		}
 
 		return updated;
@@ -136,8 +143,15 @@ public class PageService : IPageService
 		if (pageFull != null)
 		{
 			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
-			bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
-			_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+			try
+			{
+				bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
+				_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
+			}
+			catch (Exception e)
+			{
+				_logger.LogError("Error indexing Page Content: {Error}", e);
+			}
 		}
 
 		return updated;
