@@ -2,7 +2,14 @@
 
 import { Page } from "@/components/pages/page/Page";
 
-export default async function pageContainer({ params }: { params: Promise<{ workspaceId: string, pageId: string }> }) {
+export default async function pageContainer(
+	{ params, searchParams }: {
+		params: Promise<{ workspaceId: string, pageId: string }>,
+		searchParams: Promise<{ blockId?: string }>
+	}) {
+
 	const { pageId } = await params;
-	return <Page pageId={pageId}/>
+	const { blockId } = await searchParams;
+
+	return <Page pageId={pageId} blockId={blockId}/>
 }

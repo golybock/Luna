@@ -12,9 +12,10 @@ interface EditorData {
 interface EditorProps {
 	data: EditorData;
 	onChange: (blocks: (PageBlockView | PageBlockBlank)[]) => void;
+	scrollToBlockId?: string | null;
 }
 
-export const Editor: React.FC<EditorProps> = ({ data, onChange }) => {
+export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId }) => {
 	const holderRef = useRef<HTMLDivElement | null>(null);
 	const editorRef = useRef<any>(null);
 	const pendingSaveRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,6 +26,46 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange }) => {
 	// Mount
 	useEffect(() => {
 		let mounted = true;
+
+		const scrollToBlock = async () => {
+			try {
+				await editorRef.current.isReady;
+
+				const blocksCount = editorRef.current.blocks.getBlocksCount();
+				let targetIndex = -1;
+
+				// Ищем индекс блока по id
+				for (let i = 0; i < blocksCount; i++) {
+					const block = editorRef.current.blocks.getBlockByIndex(i);
+					if (block?.id === scrollToBlockId) {
+						targetIndex = i;
+						break;
+					}
+				}
+
+				if (targetIndex !== -1) {
+					// Устанавливаем фокус на блок
+					editorRef.current.caret.setToBlock?.(targetIndex, 'start');
+
+					// Скроллим к блоку (ищем DOM элемент)
+					const blockElement = holderRef.current?.querySelector(`[data-id="${scrollToBlockId}"]`);
+					if (blockElement) {
+						blockElement.scrollIntoView({
+							behavior: 'smooth',
+							block: 'center'
+						});
+
+						// Добавляем временную подсветку
+						blockElement.classList.add(styles.highlighted);
+						setTimeout(() => {
+							blockElement.classList.remove(styles.highlighted);
+						}, 2000);
+					}
+				}
+			} catch (err) {
+				console.error('Error scrolling to block:', err);
+			}
+		};
 
 		const init = async () => {
 			if (!mounted) return;
@@ -141,6 +182,12 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange }) => {
 				await editorRef.current.isReady;
 				lastSignatureRef.current = JSON.stringify(data.blocks ?? []);
 				console.log("Editor initialized");
+
+				if (scrollToBlockId){
+					console.log("Scrolling to:", scrollToBlockId);
+					await scrollToBlock();
+				}
+
 			} catch (err) {
 				console.error("Editor init error:", err);
 			}

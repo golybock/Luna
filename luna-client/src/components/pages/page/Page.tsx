@@ -16,9 +16,10 @@ import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
 
 interface PageProps {
 	pageId: string;
+	blockId?: string;
 }
 
-export const Page: React.FC<PageProps> = ({ pageId }) => {
+export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 
 	const { openModal } = useModal();
 
@@ -82,10 +83,6 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 	return (
 		<div className={styles.container}>
 
-			{/*<div className={styles.status}>*/}
-			{/*	<p>{status}</p>*/}
-			{/*</div>*/}
-
 			<div className={styles.imageContainer} style={{height: cover ? "auto" : "24px"}}>
 				{cover && (
 					<Image
@@ -137,6 +134,7 @@ export const Page: React.FC<PageProps> = ({ pageId }) => {
 						time: Date.now(),
 						version: page.pageVersionView?.version
 					}}
+					scrollToBlockId={blockId}
 				/>
 			</div>
 		</div>
