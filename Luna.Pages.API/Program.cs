@@ -54,7 +54,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Pa
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-	options.Configuration = "127.0.0.1:6379";
+	options.Configuration = "redis:6379,password=system";
 	options.InstanceName = "pages:";
 });
 
