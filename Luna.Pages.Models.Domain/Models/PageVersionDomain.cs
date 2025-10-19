@@ -113,12 +113,17 @@ public class PageVersionDomain
 
 	public PageSearchDocument ToSearchDocument(PageDomain pageDomain)
 	{
+		List<PageBlockDomain> blocks = new List<PageBlockDomain>(Content ?? []);
+
 		return new PageSearchDocument()
 		{
 			PageId = pageDomain.Id.ToString(),
 			Title = pageDomain.Title,
 			Description = pageDomain.Description,
-			Blocks = (Content ?? []).Select(item => item.ToSearchDocument()),
+			Blocks = blocks
+				.Where(item => item.HasSearchableContent())
+				.Select(item => item.ToSearchDocument())
+				.ToList(),
 			UpdatedAt = UpdatedAt,
 			WorkspaceId = pageDomain.WorkspaceId.ToString()
 		};

@@ -85,12 +85,21 @@ public class PageBlockDomain
 		};
 	}
 
+	public bool HasSearchableContent()
+	{
+		bool? hasValue = ConvertToBsonDocument(Content)?.TryGetElement("text", out BsonElement text);
+
+		return hasValue == true;
+	}
+
 	public PageBlockSearchContent ToSearchDocument()
 	{
+		bool? hasValue = ConvertToBsonDocument(Content)?.TryGetElement("text", out BsonElement text);
+
 		return new PageBlockSearchContent()
 		{
 			PageId = PageId.ToString(),
-			Content = ConvertToBsonDocument(Content)?.GetElement("text").Value.ToString() ?? "",
+			Content = hasValue == true ? text.Value.ToString() ?? string.Empty : string.Empty,
 			BlockId = Id,
 			Type = Type
 		};
