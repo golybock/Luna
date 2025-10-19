@@ -7,18 +7,18 @@ const resourcesPaths = ['/icons', '/resources']
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	const token = request.cookies.get('access_token')?.value;
-	const isAuthenticated = !!token;
-
-	// Защищенные пути
-	if (!isAuthenticated && (!publicPaths.some(path => pathname == path)) && !resourcesPaths.some(path => pathname.startsWith(path))) {
-		return NextResponse.redirect(new URL('/signIn', request.url));
-	}
-
-	// Редирект авторизованных пользователей
-	if (isAuthenticated && publicPaths.some(item => item === pathname)) {
-		return NextResponse.redirect(new URL('/start', request.url));
-	}
+	// const token = request.cookies.get('access_token')?.value;
+	// const isAuthenticated = !!token;
+	//
+	// // Защищенные пути
+	// if (!isAuthenticated && (!publicPaths.some(path => pathname == path)) && !resourcesPaths.some(path => pathname.startsWith(path))) {
+	// 	return NextResponse.redirect(new URL('/signIn', request.url));
+	// }
+	//
+	// // Редирект авторизованных пользователей
+	// if (isAuthenticated && publicPaths.some(item => item === pathname)) {
+	// 	return NextResponse.redirect(new URL('/start', request.url));
+	// }
 
 	return NextResponse.next();
 }

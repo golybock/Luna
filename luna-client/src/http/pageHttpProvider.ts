@@ -2,6 +2,7 @@
 import { LightPageView } from "@/models/page/view/LightPageView";
 import { CreatePageBlank } from "@/models/page/blank/CreatePageBlank";
 import { PageStatisticView } from "@/models/page/PageStatisticView";
+import { SearchPageBlockView } from "@/models/search/SearchPageBlockView";
 
 class PageHttpProvider extends HttpProviderBase {
 
@@ -19,6 +20,10 @@ class PageHttpProvider extends HttpProviderBase {
 
 	async searchPages(workspaceId: string, query: string): Promise<LightPageView[]> {
 		return this.get('/pages/searchPages?workspaceId=' + workspaceId + '&query=' + query);
+	}
+
+	async searchPagesBlocks(workspaceId: string, query: string): Promise<SearchPageBlockView[]> {
+		return this.get('/pages/searchinblocks?workspaceId=' + workspaceId + '&query=' + query);
 	}
 
 	async createPage(createPageBlank: CreatePageBlank): Promise<void> {
