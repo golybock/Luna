@@ -7,7 +7,6 @@ import Input from "@/ui/input/Input";
 import Button from "@/ui/button/Button";
 import Image from "next/image";
 import { useWorkspaces } from "@/store/hooks/useWorkspaces";
-import { EmojiPicker } from "@/ui/emojiPicker/EmpojiPicker";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
@@ -17,6 +16,9 @@ import { getPageStatistic } from "@/store/slices/workspaceSlice";
 import { pageHttpProvider } from "@/http/pageHttpProvider";
 import { LightPageView } from "@/models/page/view/LightPageView";
 import { toast } from "react-toastify";
+import { SearchPageBlockView } from "@/models/search/SearchPageBlockView";
+import { PageCard } from "@/components/ui/pageCard/PageCard";
+import { PageWithBlockCard } from "@/components/ui/pageCard/PageWithBlockCard";
 
 export const HomePage: React.FC = () => {
 
@@ -25,6 +27,7 @@ export const HomePage: React.FC = () => {
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchedPages, setSearchedPages] = useState<LightPageView[]>([]);
+	const [searchedPagesBlocks, setSearchedPagesBlocks] = useState<SearchPageBlockView[]>([]);
 
 	const router = useRouter();
 	const dispatch = useDispatch<AppDispatch>();
@@ -40,29 +43,37 @@ export const HomePage: React.FC = () => {
 		router.push(`/${selectedWorkspaceId}/${pageId}`);
 	}, [selectedWorkspaceId]);
 
+	const handleOnPageBlockClick = useCallback((pageId: string, blockId: string) => {
+		router.push(`/${selectedWorkspaceId}/${pageId}?blockId=${blockId}`);
+	}, [selectedWorkspaceId]);
+
 	const handleCloseSearch = () => {
 		setSearchedPages([]);
 		setSearchQuery("");
 	};
 
-	const handleOnKeyDown = async (e : any) => {
+	const handleOnKeyDown = async (e: any) => {
 		if (e.key === "Enter") {
 			await handleSearchClick()
 		}
 	};
 
 	const handleSearchClick = useCallback(async () => {
-		if(selectedWorkspaceId == null) return;
+		if (selectedWorkspaceId == null) return;
 
-		if(searchQuery == ""){
+		if (searchQuery == "") {
 			setSearchedPages([]);
+			setSearchedPagesBlocks([]);
 			return;
 		}
 
 		const pages = await pageHttpProvider.searchPages(selectedWorkspaceId, searchQuery);
-		setSearchedPages(pages);
+		const pagesBlocks = await pageHttpProvider.searchPagesBlocks(selectedWorkspaceId, searchQuery);
 
-		if(pages.length == 0){
+		setSearchedPages(pages);
+		setSearchedPagesBlocks(pagesBlocks);
+
+		if (pages.length == 0 && pagesBlocks.length == 0) {
 			toast.info("No pages found");
 		}
 
@@ -108,31 +119,27 @@ export const HomePage: React.FC = () => {
 							</div>
 							<div className={styles.pagesCarousel}>
 								{searchedPages.map((page) => (
-									<Card
-										padding="none"
-										key={page.id}
-										className={styles.pageCard}
-										onClick={() => handleOnPageClick(page.id)}
-									>
-										{page.cover && (
-											<Image
-												src={page.cover}
-												alt="cover"
-												width={150}
-												height={75}
-											/>
-										)}
-										<div className={styles.pageCardContent}>
-											{page.emoji && (
-												<EmojiPicker
-													value={page.emoji}
-													disabled={true}
-													className={styles.pageEmojiPicker}
-												/>
-											)}
-											<h4>{page.title}</h4>
-										</div>
-									</Card>
+									<PageCard
+										key={`page-${page.id}`}
+										onClick={handleOnPageClick}
+										page={page}
+									/>
+								))}
+							</div>
+						</>
+					)}
+					{searchedPagesBlocks.length > 0 && (
+						<>
+							<div className={styles.searchHeader}>
+								<p>Search result in blocks</p>
+							</div>
+							<div className={styles.pagesCarousel}>
+								{searchedPagesBlocks.map((page) => (
+									<PageWithBlockCard
+										key={`${page.pageId}-${page.blockId}`}
+										onClick={handleOnPageBlockClick}
+										page={page}
+									/>
 								))}
 							</div>
 						</>
@@ -140,48 +147,14 @@ export const HomePage: React.FC = () => {
 					<p>Recent pages</p>
 					<div className={styles.pagesCarousel}>
 						{pages.map((page) => (
-							<Card
-								padding="none"
-								key={page.id}
-								className={styles.pageCard}
-								onClick={() => handleOnPageClick(page.id)}
-							>
-								{page.cover && (
-									<Image
-										src={page.cover}
-										alt="cover"
-										width={150}
-										height={75}
-									/>
-								)}
-								<div className={styles.pageCardContent}>
-									{page.emoji && (
-										<EmojiPicker
-											value={page.emoji}
-											disabled={true}
-											className={styles.pageEmojiPicker}
-										/>
-									)}
-									<h4>{page.title}</h4>
-								</div>
-							</Card>
+							<PageCard
+								key={`page-${page.id}`}
+								onClick={handleOnPageClick}
+								page={page}
+							/>
 						))}
 					</div>
 				</div>
-				{/*{selectedWorkspacePageStatistic && (*/}
-				{/*	<Card>*/}
-				{/*		<div>*/}
-				{/*			<h5>Statistic</h5>*/}
-				{/*			<div className="col">*/}
-				{/*				<p>Total pages: {selectedWorkspacePageStatistic.totalPages}</p>*/}
-				{/*				<p>Archived pages: {selectedWorkspacePageStatistic.archivedPages}</p>*/}
-				{/*				<p>Pages in trash: {selectedWorkspacePageStatistic.deletedPages}</p>*/}
-				{/*				<p>Pinned pages: {selectedWorkspacePageStatistic.pinnedPages}</p>*/}
-				{/*				<p>Templates: {selectedWorkspacePageStatistic.templates}</p>*/}
-				{/*			</div>*/}
-				{/*		</div>*/}
-				{/*	</Card>*/}
-				{/*)}*/}
 			</div>
 		</div>
 	)
