@@ -6,6 +6,5 @@ public interface IPageSearchQueryRepository
 {
 	Task<List<PageSearchDocument>> SearchAsync(string query, Guid workspaceId, int from = 0, int size = 10, CancellationToken cancellationToken = default);
 	Task<List<PageBlockSearchContent>> SearchInBlocksAsync(string query, Guid workspaceId, int from = 0, int size = 10, CancellationToken cancellationToken = default);
-	Task<List<PageSearchDocument>> SearchInAll(string query, Guid workspaceId, int from = 0, int size = 10, CancellationToken cancellationToken = default);
 	Task<bool> IndexExistsAsync(CancellationToken cancellationToken = default);
 }
