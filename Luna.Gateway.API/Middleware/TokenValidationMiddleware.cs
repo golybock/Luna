@@ -52,6 +52,11 @@ public class TokenValidationMiddleware
 			{
 				_logger.LogWarning("Token validation failed with status code: {StatusCode}", response.StatusCode);
 				context.Response.StatusCode = (int) response.StatusCode;
+
+				// Удаляем токены если они не валидны
+				context.Response.Cookies.Delete("access_token");
+				context.Response.Cookies.Delete("refresh_token");
+
 				await context.Response.WriteAsync("Unauthorized: Invalid token");
 				return;
 			}
