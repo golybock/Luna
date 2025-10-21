@@ -1,4 +1,4 @@
-﻿import IUserView from "@/types/auth/IUserView";
+﻿import UserView from "@/models/auth/UserView";
 
 export interface WorkspaceUserDetailedView {
 	id: string;
@@ -7,5 +7,5 @@ export interface WorkspaceUserDetailedView {
 	permissions: string[];
 	invitedBy?: string;
 	acceptedAt?: string;
-	user: IUserView;
+	user: UserView;
 }
