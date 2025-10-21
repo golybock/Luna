@@ -10,6 +10,9 @@ import Input from "@/ui/input/Input";
 import Button from "@/ui/button/Button";
 import { useModal } from "@/layout/ModalContext";
 import { InviteUserModal } from "@/components/modals/InviteUser/InviteUserModal";
+import { AvatarImage } from "@/components/ui/avatarImage/AvatarImage";
+import { formatDate, formatLastActive, getInitials } from "@/tools/stringTools";
+import { Loading } from "@/components/ui/loading/Loading";
 
 export const WorkspaceSettings: React.FC = () => {
 
@@ -30,41 +33,6 @@ export const WorkspaceSettings: React.FC = () => {
 
 		getWorkspace();
 	}, []);
-
-	const formatDate = (dateString?: string) => {
-		if (!dateString) return 'Never';
-		return new Date(dateString).toLocaleDateString('ru-RU', {
-			day: '2-digit',
-			month: '2-digit',
-			year: 'numeric'
-		});
-	};
-
-	if (!workspace) {
-		return (
-			<div className={styles.container}>
-				<div className={styles.loading}>
-					<h2>Loading...</h2>
-				</div>
-			</div>
-		)
-	}
-
-	const formatLastActive = (lastActive: Date) => {
-		const now = new Date();
-		const diff = now.getTime() - new Date(lastActive).getTime();
-		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-		if (days === 0) return 'Сегодня';
-		if (days === 1) return 'Вчера';
-		if (days < 7) return `${days} дн. назад`;
-		return new Date(lastActive).toLocaleDateString('ru-RU');
-	};
-
-	const getInitials = (displayName?: string, username?: string) => {
-		const name = displayName || username || '';
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-	};
 
 	const handleStartEditing = () => {
 		if (!workspaceBlank) {
@@ -88,6 +56,10 @@ export const WorkspaceSettings: React.FC = () => {
 	const handleInviteClick = () => {
 		openModal(<InviteUserModal/>)
 	};
+
+	if (!workspace) {
+		return (<Loading/>)
+	}
 
 	return (
 		<div className={styles.container}>
@@ -198,19 +170,11 @@ export const WorkspaceSettings: React.FC = () => {
 						<tr key={workspaceUser.id} className={styles.tableRow}>
 							<td className={styles.userCell}>
 								<div className={styles.userInfo}>
-									<div className={styles.avatar}>
-										{workspaceUser.user.image ? (
-											<img
-												src={workspaceUser.user.image}
-												alt={workspaceUser.user.displayName || workspaceUser.user.username}
-												className={styles.avatarImage}
-											/>
-										) : (
-											<div className={styles.avatarPlaceholder}>
-												{getInitials(workspaceUser.user.displayName, workspaceUser.user.username)}
-											</div>
-										)}
-									</div>
+									<AvatarImage
+										src={workspaceUser.user.image}
+										alt={workspaceUser.user.displayName || workspaceUser.user.username}
+										initials={getInitials(workspaceUser.user.displayName || workspaceUser.user.username)}
+									/>
 									<div className={styles.userDetails}>
 										<div className={styles.userName}>
 											{workspaceUser.user.displayName || workspaceUser.user.username}
