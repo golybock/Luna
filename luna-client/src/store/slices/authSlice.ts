@@ -1,16 +1,14 @@
-﻿import { IWorkspaceView } from "@/types/workspace/IWorkspaceView";
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { workspaceHttpProvider } from "@/http/workspaceHttpProvider";
-import { IAuthView } from "@/types/auth/IAuthView";
+﻿import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { authHttpProvider } from "@/http/authHttpProvider";
 import { userHttpProvider } from "@/http/userHttpProvider";
-import IUserView from "@/types/auth/IUserView";
+import { AuthView } from "@/models/auth/AuthView";
+import UserView from "@/models/auth/UserView";
 
 interface AuthState {
 	isAuthenticated: boolean;
 	codeRequested: boolean;
 	codeRequestAt: number | null;
-	user: IAuthView | null;
+	user: AuthView | null;
 	isLoading: boolean;
 }
 
@@ -24,7 +22,7 @@ const initialState: AuthState = {
 
 export const checkAuthentication = createAsyncThunk(
 	"auth/checkAuthentication",
-	async (): Promise<IAuthView | null> => {
+	async (): Promise<AuthView | null> => {
 		return await authHttpProvider.checkAuth();
 	}
 );
@@ -38,7 +36,7 @@ export const requestVerificationCode = createAsyncThunk(
 
 export const signIn = createAsyncThunk(
 	"auth/signIn",
-	async ({ email, code }: { email: string; code: string }): Promise<IAuthView> => {
+	async ({ email, code }: { email: string; code: string }): Promise<AuthView> => {
 		return await authHttpProvider.signIn(email, code);
 	}
 );
@@ -53,7 +51,7 @@ export const loginGoogle = createAsyncThunk(
 
 export const getUser = createAsyncThunk(
 	"auth/getUser",
-	async (_, { getState }): Promise<IUserView> => {
+	async (_, { getState }): Promise<UserView> => {
 		const state = getState() as { auth: AuthState };
 		if (!state.auth.user?.userId) {
 			throw new Error("User ID not found");
