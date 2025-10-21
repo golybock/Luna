@@ -10,6 +10,7 @@
       <ProjectReference Include="..\Luna.Pages.Models.Blank\Luna.Pages.Models.Blank.csproj" />
       <ProjectReference Include="..\Luna.Pages.Models.Database\Luna.Pages.Models.Database.csproj" />
       <ProjectReference Include="..\Luna.Pages.Models.View\Luna.Pages.Models.View.csproj" />
+      <ProjectReference Include="..\Luna.Users.Models.Domain\Luna.Users.Models.Domain.csproj" />
     </ItemGroup>
 
 </Project>

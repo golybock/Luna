@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Luna.Tools.SharedModels\Luna.Tools.SharedModels.csproj" />
         <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
     </ItemGroup>
 

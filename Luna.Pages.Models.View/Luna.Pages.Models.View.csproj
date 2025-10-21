@@ -10,4 +10,8 @@
       <PackageReference Include="MongoDB.Bson" Version="3.4.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Luna.Users.Models.View\Luna.Users.Models.View.csproj" />
+    </ItemGroup>
+
 </Project>
