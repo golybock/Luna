@@ -5,6 +5,8 @@ import { CreatePageCommentBlank } from "@/models/page/blank/CreatePageCommentBla
 import { PatchPageCommentBlank } from "@/models/page/blank/PatchPageCommentBlank";
 import { PageFullView } from "@/models/page/view/PageFullView";
 import { PageBlockView } from "@/models/page/view/PageBlockView";
+import { UserCursorBlank } from "@/models/cursor/UserCursorBlank";
+import { UserCursorView } from "@/models/cursor/UserCursorView";
 
 type EventHandler<T = any> = (payload: T) => void;
 
@@ -101,6 +103,11 @@ export class PageWsProvider {
 		await this.connection!.invoke("GetPageData", pageId);
 	}
 
+	async setCursor(pageId: string, userCursorBlank: UserCursorBlank): Promise<void> {
+		await this.ensureConnected();
+		await this.connection!.invoke("SetCursor", pageId, userCursorBlank);
+	}
+
 	async updatePage(pageId: string, patchPageBlank: PatchPageBlank): Promise<void> {
 		await this.ensureConnected();
 		await this.connection!.invoke("UpdatePage", pageId, patchPageBlank);
@@ -158,6 +165,10 @@ export class PageWsProvider {
 
 	onPageCommentsUpdated(handler: EventHandler<{ pageId: string, comments: any[] }>) {
 		return this.on("PageCommentsUpdated", handler);
+	}
+
+	onCursorSet(handler: EventHandler<UserCursorView[]>) {
+		return this.on("CursorSet", handler);
 	}
 
 	onCommentUpdated(handler: EventHandler<{ commentId: string }>) {

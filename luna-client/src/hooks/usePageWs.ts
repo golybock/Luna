@@ -4,6 +4,8 @@ import { PageBlockView } from '@/models/page/view/PageBlockView';
 import { PageBlockBlank } from '@/models/page/blank/PageBlockBlank';
 import { PageWsProvider } from "@/http/pageWsProvider";
 import { PatchPageBlank } from "@/models/page/blank/PatchPageBlank";
+import { UserCursorView } from "@/models/cursor/UserCursorView";
+import { UserCursorBlank } from "@/models/cursor/UserCursorBlank";
 
 interface UsePageWsOptions {
 	autoConnect?: boolean;
@@ -15,6 +17,7 @@ interface UsePageWsOptions {
 interface UsePageWsReturn {
 	page: PageFullView | null;
 	blocks: PageBlockView[];
+	cursors: UserCursorView[];
 	emoji: string | null;
 	pageTitle: string | null;
 	cover: string | null;
@@ -24,6 +27,7 @@ interface UsePageWsReturn {
 	error: Error | null;
 	status: string | null;
 	setBlocks: (blocks: PageBlockView[]) => void;
+	setCursor: (cursor: UserCursorBlank) => void;
 	setEmoji: (emoji: string | null) => void;
 	setCover: (cover: string | null) => void;
 	setPageTitle: (title: string | null) => void;
@@ -54,6 +58,7 @@ export function usePageWs(
 	const [cover, setCover] = useState<string | null>(null);
 	const [pageTitle, setPageTitle] = useState<string | null>(null);
 	const [description, setDescription] = useState<string | null>(null);
+	const [cursors, setCursors] = useState<UserCursorView[]>([]);
 	const [isConnected, setIsConnected] = useState(false);
 	const [isConnecting, setIsConnecting] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
@@ -114,6 +119,25 @@ export function usePageWs(
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error('Failed to update page');
 			console.error('[usePageWs] Failed to update page:', error);
+			setError(error);
+			throw error;
+		}
+	}, [pageId]);
+
+	const setCursor = useCallback(async (cursorBlank: UserCursorBlank) => {
+		const provider = providerRef.current;
+		if (!provider) {
+			const err = new Error('Provider not initialized');
+			setError(err);
+			throw err;
+		}
+
+		try {
+			await provider.setCursor(pageId, cursorBlank);
+			console.log('[usePageWs] Cursor updated successfully');
+		} catch (err) {
+			const error = err instanceof Error ? err : new Error('Failed to update cursor');
+			console.error('[usePageWs] Failed to update cursor:', error);
 			setError(error);
 			throw error;
 		}
@@ -231,6 +255,10 @@ export function usePageWs(
 					provider.onPageCommentsUpdated((payload: { pageId: string; comments: any[] }) => {
 						setStatus("Page comments updated");
 					}),
+
+					provider.onCursorSet((payload: UserCursorView[]) => {
+						setCursors(payload)
+					}),
 				];
 
 				unsubscribersRef.current = unsubs;
@@ -297,6 +325,7 @@ export function usePageWs(
 		pageTitle,
 		cover,
 		description,
+		cursors,
 		isConnected,
 		isConnecting,
 		error,
@@ -304,6 +333,7 @@ export function usePageWs(
 		setBlocks,
 		setEmoji,
 		setCover,
+		setCursor,
 		setPageTitle,
 		setDescription,
 		saveBlocks,
