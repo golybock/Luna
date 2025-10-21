@@ -1,12 +1,10 @@
 ﻿@import "src/styles/global";
 
 .editorjs {
-	background-color: var(--secondary-container);
-	color: var(--text);
 	font-family: "noto-sans", system-ui;
-	border-radius: 20px;
-	padding: 8px 0;
 	box-sizing: border-box;
+	position: relative;
+	color: var(--text);
 
 	.ce-block__content,
 	.ce-toolbar__content {
@@ -25,7 +23,6 @@
 
 	.ce-inline-toolbar,
 	.ce-settings {
-		background: var(--secondary-container);
 		color: var(--text);
 		background: var(--teriary-container);
 	}

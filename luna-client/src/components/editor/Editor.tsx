@@ -2,6 +2,8 @@
 import styles from "./Editor.module.scss";
 import { PageBlockView } from "@/models/page/view/PageBlockView";
 import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
+import { CursorOverlay } from "@/components/editor/addons/CursorOverlay";
+import { UserCursorView } from "@/models/cursor/UserCursorView";
 
 interface EditorData {
 	time: number;
@@ -13,15 +15,58 @@ interface EditorProps {
 	data: EditorData;
 	onChange: (blocks: (PageBlockView | PageBlockBlank)[]) => void;
 	scrollToBlockId?: string | null;
+	cursors?: UserCursorView[];
+	onCursorChange?: (blockId: string, position: number) => void;
 }
 
-export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId }) => {
+export const Editor: React.FC<EditorProps> = ({
+	data,
+	onChange,
+	scrollToBlockId,
+	cursors,
+	onCursorChange
+}) => {
 	const holderRef = useRef<HTMLDivElement | null>(null);
 	const editorRef = useRef<any>(null);
 	const pendingSaveRef = useRef<NodeJS.Timeout | null>(null);
+	const cursorUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	const applyingRemoteRef = useRef(false);
 	const lastSignatureRef = useRef<string | undefined>(undefined);
+
+	// Функция для отправки позиции курсора
+	const sendCursorPosition = () => {
+		if (!editorRef.current || !onCursorChange) return;
+
+		try {
+			const currentIndex = editorRef.current.blocks.getCurrentBlockIndex?.();
+			if (currentIndex === undefined || currentIndex < 0) return;
+
+			const currentBlock = editorRef.current.blocks.getBlockByIndex(currentIndex);
+			if (!currentBlock || !currentBlock.id) return;
+
+			// Получаем текущую позицию курсора в блоке
+			const selection = window.getSelection();
+			if (!selection || selection.rangeCount === 0) return;
+
+			const range = selection.getRangeAt(0);
+			const position = range.startOffset;
+
+			onCursorChange(currentBlock.id, position);
+		} catch (err) {
+			console.error('[Editor] Error sending cursor position:', err);
+		}
+	};
+
+	const handleCursorMove = () => {
+		if (cursorUpdateTimeoutRef.current) {
+			clearTimeout(cursorUpdateTimeoutRef.current);
+		}
+
+		cursorUpdateTimeoutRef.current = setTimeout(() => {
+			sendCursorPosition();
+		}, 300);
+	};
 
 	// Mount
 	useEffect(() => {
@@ -183,7 +228,13 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId 
 				lastSignatureRef.current = JSON.stringify(data.blocks ?? []);
 				console.log("Editor initialized");
 
-				if (scrollToBlockId){
+				if (holderRef.current && onCursorChange) {
+					holderRef.current.addEventListener('keyup', handleCursorMove);
+					holderRef.current.addEventListener('mouseup', handleCursorMove);
+					holderRef.current.addEventListener('click', handleCursorMove);
+				}
+
+				if (scrollToBlockId) {
 					console.log("Scrolling to:", scrollToBlockId);
 					await scrollToBlock();
 				}
@@ -200,9 +251,20 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId 
 			if (pendingSaveRef.current) {
 				clearTimeout(pendingSaveRef.current);
 			}
+			if (cursorUpdateTimeoutRef.current) {
+				clearTimeout(cursorUpdateTimeoutRef.current);
+			}
+
+			if (holderRef.current) {
+				holderRef.current.removeEventListener('keyup', handleCursorMove);
+				holderRef.current.removeEventListener('mouseup', handleCursorMove);
+				holderRef.current.removeEventListener('click', handleCursorMove);
+			}
+
 			if (editorRef.current?.destroy) {
 				editorRef.current.destroy();
 			}
+
 			editorRef.current = null;
 		};
 	}, []);
@@ -295,7 +357,10 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId 
 					let newIndex = -1;
 					for (let i = 0; i < count - 1; i++) {
 						const b = api.blocks.getBlockByIndex(i);
-						if (b?.id === currentId) { newIndex = i; break; }
+						if (b?.id === currentId) {
+							newIndex = i;
+							break;
+						}
 					}
 					if (newIndex >= 0) {
 						api.caret.setToBlock?.(newIndex, 'end');
@@ -316,5 +381,14 @@ export const Editor: React.FC<EditorProps> = ({ data, onChange, scrollToBlockId 
 		applyRemote();
 	}, [data]);
 
-	return <div ref={holderRef} className={styles.editorjs} />;
+	return (
+		<div ref={holderRef} className={styles.editorjs}>
+			{holderRef.current && (
+				<CursorOverlay
+					editorElement={holderRef.current}
+					cursors={cursors}
+				/>
+			)}
+		</div>
+	);
 };

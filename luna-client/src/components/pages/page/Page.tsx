@@ -30,10 +30,12 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 		pageTitle,
 		cover,
 		description,
+		cursors,
 		isConnecting,
 		error,
 		setEmoji,
 		status,
+		setCursor,
 		setPageTitle,
 		setDescription,
 		setCover,
@@ -69,6 +71,10 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 	const handleEditorChange = useCallback(async (newBlocks: PageBlockBlank[] | PageBlockView[]) => {
 		await saveBlocks(newBlocks);
 	}, []);
+
+	const handleCursorChange = useCallback(async (blockId: string, position: number) => {
+		await setCursor({ blockId, position });
+	}, [setCursor]);
 
 	const handleOpenSettings = () => {
 		if (page) {
@@ -129,6 +135,8 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 				</Card>
 				<Editor
 					onChange={handleEditorChange}
+					onCursorChange={handleCursorChange}
+					cursors={cursors}
 					data={{
 						blocks: blocks,
 						time: Date.now(),
