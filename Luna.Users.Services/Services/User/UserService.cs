@@ -1,10 +1,8 @@
 ﻿using Luna.Users.Models.Blank.Models;
 using Luna.Users.Models.Database.Models;
 using Luna.Users.Models.Domain.Models;
-using Luna.Users.Models.Extensions.Extensions;
 using Luna.Users.Models.View.Models;
 using Luna.Users.Repositories.Repositories.User;
-using Luna.Users.Services.Extensions;
 
 namespace Luna.Users.Services.Services.User;
 
@@ -21,21 +19,24 @@ public class UserService : IUserService
 	{
 		UserDatabase? user = await _userRepository.GetUserByIdAsync(userId);
 
-		return user?.ToView();
+		return user == null ? null : UserDomain.FromDatabase(user).ToView();
 	}
 
 	public async Task<UserView?> GetUserByUsernameAsync(string username)
 	{
 		UserDatabase? user = await _userRepository.GetUserByUsernameAsync(username);
 
-		return user?.ToView();
+		return user == null ? null : UserDomain.FromDatabase(user).ToView();
 	}
 
 	public async Task<IEnumerable<UserView>> GetUsersByIdsAsync(IEnumerable<Guid> userIds)
 	{
 		IEnumerable<UserDatabase> users = await _userRepository.GetUsersByIdsAsync(userIds);
 
-		return users.Select(u => u.ToView()).ToList();
+		return users
+			.Select(UserDomain.FromDatabase)
+			.Select(userDomain => userDomain.ToView())
+			.ToList();
 	}
 
 	public async Task<bool> CreateUserAsync(Guid userId, UserBlank user)
@@ -52,7 +53,7 @@ public class UserService : IUserService
 			throw new Exception("User already exists");
 		}
 
-		UserDomain userDomain = user.ToDomain();
+		UserDomain userDomain = UserDomain.FromBLank(user);
 		userDomain.Id = userId;
 
 		return await _userRepository.CreateUserAsync(userDomain.ToDatabase());
@@ -67,7 +68,7 @@ public class UserService : IUserService
 			throw new Exception("User not found");
 		}
 
-		UserDomain userDomain = user.ToDomain(userDatabase);
+		UserDomain userDomain = UserDomain.FromBLank(user);
 
 		return await _userRepository.UpdateUserAsync(userId, userDomain.ToDatabase());
 	}

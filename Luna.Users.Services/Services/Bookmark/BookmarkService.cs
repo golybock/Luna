@@ -1,7 +1,6 @@
 ﻿using Luna.Users.Models.Blank.Models;
 using Luna.Users.Models.Database.Models;
 using Luna.Users.Models.Domain.Models;
-using Luna.Users.Models.Extensions.Extensions;
 using Luna.Users.Models.View.Models;
 using Luna.Users.Repositories.Repositories.Bookmark;
 
@@ -20,7 +19,10 @@ public class BookmarkService : IBookmarkService
 	{
 		IEnumerable<BookmarkDatabase> bookmarks = await _bookmarkRepository.GetByUserIdAsync(userId, page, pageSize);
 
-		return bookmarks.Select(b => b.ToView());
+		return bookmarks
+			.Select(BookmarkDomain.FromDatabase)
+			.Select(bookmarkDomain => bookmarkDomain.ToView())
+			.ToList();
 	}
 
 	public async Task<BookmarkView?> GetByIdAsync(Guid userId, Guid bookmarkId)
@@ -32,13 +34,13 @@ public class BookmarkService : IBookmarkService
 	{
 		BookmarkDatabase? bookmark = await _bookmarkRepository.GetByIdAsync(bookmarkId);
 
-		return bookmark?.ToView();
+		return bookmark == null ? null : BookmarkDomain.FromDatabase(bookmark).ToView();
 	}
 
 	// Либо создание, либо изменение (только индекс)
 	public async Task<bool> CreateOrUpdateAsync(Guid userId, Guid? bookmarkId, BookmarkBlank bookmark)
 	{
-		BookmarkDomain bookmarkDomain = bookmark.ToDomain();
+		BookmarkDomain bookmarkDomain = BookmarkDomain.FromBlank(bookmark);
 
 		// не указан id - создание новой закладки
 		if (bookmarkId == null)
