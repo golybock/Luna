@@ -15,6 +15,7 @@ using Luna.Tools.Database.Npgsql.Options;
 using Luna.Tools.Exception;
 using Luna.Tools.SharedModels.Models.Kafka;
 using Luna.Tools.SharedModels.Models.Search;
+using Luna.Users.gRPC.Client.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Nest;
@@ -45,6 +46,8 @@ builder.Logging.AddDebug();
 builder.Services.AddScoped<IPageService, PageService>();
 builder.Services.AddScoped<IWorkspacePermissionService, WorkspacePermissionService>();
 builder.Services.AddScoped<IPermissionEventHandler, PermissionEventHandler>();
+
+builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 builder.Services.Configure<ElasticSearchSettings>(builder.Configuration.GetSection("ElasticSearch"));

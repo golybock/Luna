@@ -23,6 +23,7 @@
       <ProjectReference Include="..\Luna.Pages.Models.View\Luna.Pages.Models.View.csproj" />
       <ProjectReference Include="..\Luna.Pages.Services\Luna.Pages.Services.csproj" />
       <ProjectReference Include="..\Luna.Tools\Luna.Tools.csproj" />
+      <ProjectReference Include="..\Luna.Users.gRPC.Client\Luna.Users.gRPC.Client.csproj" />
     </ItemGroup>
 
 </Project>

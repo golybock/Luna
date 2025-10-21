@@ -8,6 +8,7 @@ public interface IPageHub
 	Task LeavePage(Guid pageId);
 	Task Pong(DateTime timestamp);
 	Task GetPageData(Guid pageId);
+	Task SetCursor(Guid pageId, UserCursorBlank userCursorBlank);
 	Task UpdatePage(Guid pageId, PatchPageBlank patchPageBlank);
 	Task UpdatePageContent(Guid pageId, UpdatePageContentBlank pageContentBlank);
 	Task GetPageComments(Guid pageId);
