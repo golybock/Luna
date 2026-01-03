@@ -1,6 +1,4 @@
-﻿import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
-
-export interface UpdatePageContentBlank{
-	blocks: PageBlockBlank[];
+﻿export interface UpdatePageContentBlank{
+	document: any;
 	changeDescription: string;
 }

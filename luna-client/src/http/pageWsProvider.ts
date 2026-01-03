@@ -4,9 +4,9 @@ import { UpdatePageContentBlank } from "@/models/page/blank/UpdatePageContentBla
 import { CreatePageCommentBlank } from "@/models/page/blank/CreatePageCommentBlank";
 import { PatchPageCommentBlank } from "@/models/page/blank/PatchPageCommentBlank";
 import { PageFullView } from "@/models/page/view/PageFullView";
-import { PageBlockView } from "@/models/page/view/PageBlockView";
 import { UserCursorBlank } from "@/models/cursor/UserCursorBlank";
 import { UserCursorView } from "@/models/cursor/UserCursorView";
+import UserView from "@/models/auth/UserView";
 
 type EventHandler<T = any> = (payload: T) => void;
 
@@ -143,8 +143,8 @@ export class PageWsProvider {
 		return this.on("UserJoinedPage", handler);
 	}
 
-	onUserLeftPage(handler: EventHandler<{ userId: string, pageId: string }>) {
-		return this.on("UserLeftPage", handler);
+	onUsersSet(handler: EventHandler<UserView[]>) {
+		return this.on("UsersSet", handler);
 	}
 
 	onPageData(handler: EventHandler<PageFullView>) {
@@ -155,7 +155,7 @@ export class PageWsProvider {
 		return this.on("PageUpdated", handler);
 	}
 
-	onPageContentUpdated(handler: EventHandler<{ pageId: string, blocks: PageBlockView[] }>) {
+	onPageContentUpdated(handler: EventHandler<{ pageId: string, document: any, version?: number, updatedAt?: string }>) {
 		return this.on("PageContentUpdated", handler);
 	}
 

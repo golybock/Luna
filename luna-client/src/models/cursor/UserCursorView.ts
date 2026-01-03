@@ -1,8 +1,6 @@
-﻿import UserView from "@/models/auth/UserView";
-
-export interface UserCursorView {
+﻿export interface UserCursorView {
 	blockId: string;
 	position: number;
 	userId: string;
-	user?: UserView;
+	userDisplayName?: string;
 }

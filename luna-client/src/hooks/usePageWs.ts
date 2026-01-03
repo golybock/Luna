@@ -1,11 +1,11 @@
-﻿import { useEffect, useRef, useState, useCallback } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { PageFullView } from '@/models/page/view/PageFullView';
-import { PageBlockView } from '@/models/page/view/PageBlockView';
-import { PageBlockBlank } from '@/models/page/blank/PageBlockBlank';
 import { PageWsProvider } from "@/http/pageWsProvider";
 import { PatchPageBlank } from "@/models/page/blank/PatchPageBlank";
 import { UserCursorView } from "@/models/cursor/UserCursorView";
 import { UserCursorBlank } from "@/models/cursor/UserCursorBlank";
+import { Status, Statuses } from "@/models/ui/Status";
+import UserView from "@/models/auth/UserView";
 
 interface UsePageWsOptions {
 	autoConnect?: boolean;
@@ -16,7 +16,7 @@ interface UsePageWsOptions {
 
 interface UsePageWsReturn {
 	page: PageFullView | null;
-	blocks: PageBlockView[];
+	pageDocument: any;
 	cursors: UserCursorView[];
 	emoji: string | null;
 	pageTitle: string | null;
@@ -25,16 +25,16 @@ interface UsePageWsReturn {
 	isConnected: boolean;
 	isConnecting: boolean;
 	error: Error | null;
-	status: string | null;
-	setBlocks: (blocks: PageBlockView[]) => void;
+	status: Status | null;
+	setPageDocument: (doc: any) => void;
 	setCursor: (cursor: UserCursorBlank) => void;
 	setEmoji: (emoji: string | null) => void;
 	setCover: (cover: string | null) => void;
 	setPageTitle: (title: string | null) => void;
 	setDescription: (description: string | null) => void;
 	savePageData: (patchPageBlank: PatchPageBlank) => Promise<void>;
-	saveBlocks: (blocks: PageBlockView | PageBlockBlank[]) => Promise<void>;
-	updatePageContent: (blocks: PageBlockView[], changeDescription?: string) => Promise<void>;
+	saveDocument: (document: any) => Promise<void>;
+	updatePageContent: (document: any, changeDescription?: string) => Promise<void>;
 	refetchPageData: () => Promise<void>;
 	provider: PageWsProvider | null;
 }
@@ -52,20 +52,26 @@ export function usePageWs(
 	} = options;
 
 	const [page, setPage] = useState<PageFullView | null>(null);
-	const [status, setStatus] = useState(null);
-	const [blocks, setBlocks] = useState<PageBlockView[]>([]);
+	const [status, setStatus] = useState<Status | null>(null);
+	const [pageDocument, setPageDocument] = useState<any>(null);
 	const [emoji, setEmoji] = useState<string | null>(null);
 	const [cover, setCover] = useState<string | null>(null);
 	const [pageTitle, setPageTitle] = useState<string | null>(null);
 	const [description, setDescription] = useState<string | null>(null);
 	const [cursors, setCursors] = useState<UserCursorView[]>([]);
+	const [users, setUsers] = useState<UserView[]>([]);
 	const [isConnected, setIsConnected] = useState(false);
 	const [isConnecting, setIsConnecting] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
+	const [displayStatus, setDisplayStatus] = useState<Status | null>(null);
 
 	const providerRef = useRef<PageWsProvider | null>(null);
 	const isJoinedRef = useRef(false);
 	const unsubscribersRef = useRef<(() => void)[]>([]);
+	const pageVersionRef = useRef<number>(-1);
+	const lastIncomingSignatureRef = useRef<string | null>(null);
+	const lastSentSignatureRef = useRef<string | null>(null);
+	const currentSignatureRef = useRef<string | null>(null);
 
 	const callbacksRef = useRef({ onConnected, onError });
 
@@ -77,7 +83,35 @@ export function usePageWs(
 		providerRef.current = new PageWsProvider();
 	}
 
-	const saveBlocks = useCallback(async (newBlocks: PageBlockView[]) => {
+	useEffect(() => {
+		pageVersionRef.current = -1;
+		lastIncomingSignatureRef.current = null;
+		lastSentSignatureRef.current = null;
+		currentSignatureRef.current = null;
+	}, [pageId]);
+
+	useEffect(() => {
+		const timeout = setTimeout(() => setDisplayStatus(status), 150);
+		const timeout2 = setTimeout(() => setDisplayStatus(Statuses.Empty), 1000);
+		return () => {
+			clearTimeout(timeout);
+			clearTimeout(timeout2);
+		};
+	}, [status]);
+
+	const docSignature = useCallback((value: any) => {
+		try {
+			return JSON.stringify(value ?? null);
+		} catch {
+			return null;
+		}
+	}, []);
+
+	const hasDocChanged = useCallback((prev: any, next: any) => {
+		return docSignature(prev) !== docSignature(next);
+	}, [docSignature]);
+
+	const saveDocument = useCallback(async (newDoc: any) => {
 		const provider = providerRef.current;
 		if (!provider) {
 			const err = new Error('Provider not initialized');
@@ -85,25 +119,30 @@ export function usePageWs(
 			throw err;
 		}
 
-		setBlocks(newBlocks);
+		const sig = docSignature(newDoc);
+		if (sig && sig === currentSignatureRef.current) {
+			lastSentSignatureRef.current = sig;
+			setPageDocument(newDoc);
+			return;
+		}
 
-		const pageBlocks = newBlocks.map((item) => {
-			return { ...item } as PageBlockBlank;
-		});
+		currentSignatureRef.current = sig;
+		lastSentSignatureRef.current = sig;
+		setPageDocument(newDoc);
 
 		try {
 			await provider.updatePageContent(pageId, {
-				blocks: pageBlocks,
+				document: newDoc,
 				changeDescription: 'Update'
 			});
-			console.log('[usePageWs] Blocks updated successfully');
+			console.log('[usePageWs] Document updated successfully');
 		} catch (err) {
-			const error = err instanceof Error ? err : new Error('Failed to update blocks');
-			console.error('[usePageWs] Failed to update blocks:', error);
+			const error = err instanceof Error ? err : new Error('Failed to update document');
+			console.error('[usePageWs] Failed to update document:', error);
 			setError(error);
 			throw error;
 		}
-	}, [pageId]);
+	}, [pageId, docSignature]);
 
 	const savePageData = useCallback(async (patchPageBlank: PatchPageBlank) => {
 		const provider = providerRef.current;
@@ -145,7 +184,7 @@ export function usePageWs(
 
 	// Метод для обновления контента с кастомным описанием
 	const updatePageContent = useCallback(async (
-		newBlocks: PageBlockView[],
+		newDocument: any,
 		changeDescription: string = 'Update'
 	) => {
 		const provider = providerRef.current;
@@ -155,24 +194,23 @@ export function usePageWs(
 			throw err;
 		}
 
-		const pageBlocks = newBlocks.map((item) => {
-			return { ...item } as PageBlockBlank;
-		});
-
 		try {
 			await provider.updatePageContent(pageId, {
-				blocks: pageBlocks,
+				document: newDocument,
 				changeDescription
 			});
 			console.log('[usePageWs] Page content updated successfully');
-			setBlocks(newBlocks);
+			const sig = docSignature(newDocument);
+			currentSignatureRef.current = sig;
+			lastSentSignatureRef.current = sig;
+			setPageDocument(newDocument);
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error('Failed to update page content');
 			console.error('[usePageWs] Failed to update page content:', error);
 			setError(error);
 			throw error;
 		}
-	}, [pageId]);
+	}, [pageId, docSignature]);
 
 	// Метод для перезапроса данных страницы
 	const refetchPageData = useCallback(async () => {
@@ -191,17 +229,46 @@ export function usePageWs(
 		}
 	}, [pageId]);
 
-	// Основной эффект для подключения и подписки
+	// Основной эффект для подключения и подписки (с паузой при скрытии вкладки)
 	useEffect(() => {
 		const provider = providerRef.current;
 		if (!provider || !autoConnect) return;
 
 		let isActive = true;
+		let isSuspendedByVisibility = false;
+
+		const cleanup = async () => {
+			try {
+				unsubscribersRef.current.forEach(unsub => unsub());
+				unsubscribersRef.current = [];
+
+				if (isJoinedRef.current && provider.isConnected()) {
+					setStatus(Statuses.Leaving);
+					await provider.leavePage(pageId);
+					isJoinedRef.current = false;
+				}
+
+				if (provider.isConnected()) {
+					setStatus(Statuses.Disconnecting);
+					await provider.disconnect();
+					setIsConnected(false);
+				}
+			} catch (error) {
+				console.error('[usePageWs] Cleanup error:', error);
+			}
+		};
 
 		const connectAndSubscribe = async () => {
 			try {
+				if (document.hidden) {
+					setStatus(Statuses.Paused);
+					isSuspendedByVisibility = true;
+					return;
+				}
+
+				isSuspendedByVisibility = false;
 				setIsConnecting(true);
-				setStatus("Connecting");
+				setStatus(Statuses.Connecting);
 				setError(null);
 
 				await provider.connect();
@@ -209,14 +276,20 @@ export function usePageWs(
 				if (!isActive) return;
 
 				setIsConnected(true);
-				setStatus("Connected");
+				setStatus(Statuses.Connected);
 
 				const unsubs = [
 					provider.onPageData((data: PageFullView) => {
-						setStatus("Page data received");
-						console.log('[usePageWs] Page data received');
+						setStatus(Statuses.PageDataReceived);
+						pageVersionRef.current = data.pageVersionView?.version ?? -1;
+
+						const doc = data?.pageVersionView?.document ?? null;
+						const sig = docSignature(doc);
+						lastIncomingSignatureRef.current = sig;
+						currentSignatureRef.current = sig;
+
 						setPage(data);
-						setBlocks(data?.pageVersionView?.content ?? []);
+						setPageDocument(doc);
 						setEmoji(data.page?.emoji ?? null);
 						setPageTitle(data.page?.title ?? null);
 						setCover(data.page?.cover ?? null);
@@ -225,7 +298,7 @@ export function usePageWs(
 					}),
 
 					provider.onPageUpdated((payload: { pageId: string }) => {
-						setStatus("Page updated");
+						setStatus(Statuses.PageDataUpdated);
 						console.log('[usePageWs] Page updated', payload);
 						if (provider && isJoinedRef.current) {
 							provider.getPageData(pageId).catch(console.error);
@@ -233,44 +306,82 @@ export function usePageWs(
 					}),
 
 					provider.onPageContentUpdated((payload) => {
-						setStatus("Content updated");
-						setBlocks(prev => {
-							const same = JSON.stringify(prev) === JSON.stringify(payload.blocks);
-							return same ? prev : payload.blocks;
+						setStatus(Statuses.PageDataUpdated);
+						const incomingSignature = docSignature(payload.document);
+						const currentSig = currentSignatureRef.current;
+
+						if (incomingSignature && incomingSignature === currentSig) {
+							lastIncomingSignatureRef.current = incomingSignature;
+							return;
+						}
+
+						if (incomingSignature && incomingSignature === lastIncomingSignatureRef.current) {
+							return;
+						}
+
+						if (incomingSignature && incomingSignature === lastSentSignatureRef.current) {
+							lastIncomingSignatureRef.current = incomingSignature;
+							currentSignatureRef.current = incomingSignature;
+							return;
+						}
+
+						setPageDocument(prev => {
+							const incomingVersion = (payload as any)?.version ?? null;
+							if (incomingVersion !== null && incomingVersion < pageVersionRef.current) {
+								console.debug('[usePageWs] Skip stale content', {
+									incomingVersion,
+									current: pageVersionRef.current
+								});
+								return prev;
+							}
+
+							if (incomingVersion !== null) {
+								pageVersionRef.current = incomingVersion;
+							}
+
+							if (!hasDocChanged(prev, payload.document)) {
+								return prev;
+							}
+
+							lastIncomingSignatureRef.current = incomingSignature;
+							currentSignatureRef.current = incomingSignature;
+							return payload.document;
 						});
 					}),
 
 					provider.onUserJoinedPage((payload: { userId: string; pageId: string }) => {
-						setStatus("User joined");
+						setStatus(Statuses.UserJoined);
 					}),
 
-					provider.onUserLeftPage((payload: { userId: string; pageId: string }) => {
-						setStatus("User left");
+					provider.onUsersSet((payload: UserView[]) => {
+						setUsers(payload);
+						setStatus(Statuses.UserLeft);
 					}),
 
 					provider.onPageComments((payload: { pageId: string; comments: any[] }) => {
-						setStatus("Page comments loaded");
+						setStatus(Statuses.PageDataReceived);
 					}),
 
 					provider.onPageCommentsUpdated((payload: { pageId: string; comments: any[] }) => {
-						setStatus("Page comments updated");
+						setStatus(Statuses.PageDataUpdated);
 					}),
 
 					provider.onCursorSet((payload: UserCursorView[]) => {
 						setCursors(payload)
+						console.log(payload)
 					}),
 				];
 
 				unsubscribersRef.current = unsubs;
 
-				setStatus("Joining page");
+				setStatus(Statuses.Connecting);
 				await provider.joinPage(pageId);
 				isJoinedRef.current = true;
 
 				if (!isActive) return;
 
 				if (autoFetchData) {
-					setStatus("Fetching page data");
+					setStatus(Statuses.Fetching);
 					await provider.getPageData(pageId);
 				}
 
@@ -278,7 +389,7 @@ export function usePageWs(
 
 			} catch (err) {
 				const error = err instanceof Error ? err : new Error('Connection failed');
-				setStatus("Error connecting");
+				setStatus(Statuses.Error);
 				setError(error);
 				callbacksRef.current.onError?.(error);
 			} finally {
@@ -288,39 +399,31 @@ export function usePageWs(
 			}
 		};
 
+		const handleVisibilityChange = async () => {
+			if (!isActive) return;
+			if (document.hidden) {
+				setStatus(Statuses.Paused);
+				await cleanup();
+				isSuspendedByVisibility = true;
+			} else if (isSuspendedByVisibility) {
+				setStatus(Statuses.Reconnecting);
+				await connectAndSubscribe();
+			}
+		};
+
 		connectAndSubscribe();
+		window.document.addEventListener('visibilitychange', handleVisibilityChange);
 
 		return () => {
 			isActive = false;
-
-			const cleanup = async () => {
-				try {
-					unsubscribersRef.current.forEach(unsub => unsub());
-					unsubscribersRef.current = [];
-
-					if (isJoinedRef.current && provider.isConnected()) {
-						setStatus("Leaving page");
-						await provider.leavePage(pageId);
-						isJoinedRef.current = false;
-					}
-
-					if (provider.isConnected()) {
-						setStatus("Disconnecting");
-						await provider.disconnect();
-						setIsConnected(false);
-					}
-				} catch (error) {
-					console.error('[usePageWs] Cleanup error:', error);
-				}
-			};
-
+			window.document.removeEventListener('visibilitychange', handleVisibilityChange);
 			cleanup();
 		};
-	}, [pageId, autoConnect, autoFetchData]);
+	}, [pageId, autoConnect, autoFetchData, hasDocChanged]);
 
 	return {
 		page,
-		blocks,
+		pageDocument,
 		emoji,
 		pageTitle,
 		cover,
@@ -329,14 +432,14 @@ export function usePageWs(
 		isConnected,
 		isConnecting,
 		error,
-		status,
-		setBlocks,
+		status: displayStatus ?? status,
+		setPageDocument,
 		setEmoji,
 		setCover,
 		setCursor,
 		setPageTitle,
 		setDescription,
-		saveBlocks,
+		saveDocument,
 		savePageData,
 		updatePageContent,
 		refetchPageData,

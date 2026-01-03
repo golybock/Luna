@@ -1,10 +1,8 @@
-﻿import { PageBlockView } from "@/models/page/view/PageBlockView";
-
-export interface PageVersionView{
+﻿export interface PageVersionView{
 	id: string;
 	pageId: string;
 	version: number;
-	content: PageBlockView[];
+	document?: any;
 	createdAt: string;
 	updatedAt: string;
 	createdBy: string;
