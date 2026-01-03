@@ -12,7 +12,7 @@ public class PageVersionDomain
 	public Guid Id { get; set; }
 	public Guid PageId { get; set; }
 	public int Version { get; set; }
-	public IEnumerable<PageBlockDomain>? Content { get; set; }
+	public object? Document { get; set; }
 	public DateTime CreatedAt { get; set; }
 	public DateTime UpdatedAt { get; set; }
 	public Guid CreatedBy { get; set; }
@@ -25,7 +25,7 @@ public class PageVersionDomain
 			Id = id,
 			PageId = pageId,
 			Version = 1,
-			Content = null,
+			Document = CreateEmptyDocument(),
 			CreatedAt = DateTime.UtcNow,
 			UpdatedAt = DateTime.UtcNow,
 			CreatedBy = createdBy,
@@ -40,24 +40,7 @@ public class PageVersionDomain
 			Id = Guid.Parse(pageVersionDatabase.Id),
 			PageId = Guid.Parse(pageVersionDatabase.PageId),
 			Version = pageVersionDatabase.Version,
-			Content = pageVersionDatabase.Content?.Select(bsonValue => new PageBlockDomain()
-			{
-				Id = bsonValue["_id"].AsString,
-				PageId = Guid.Parse(bsonValue["page_id"].AsString),
-				Index = bsonValue["index"].AsInt32,
-				Content = JsonDocument.Parse(bsonValue["content"]?.AsBsonDocument?.ToJson() ?? string.Empty),
-				CreatedAt = bsonValue["created_at"].AsUniversalTime,
-				UpdatedAt = bsonValue["updated_at"].AsUniversalTime,
-				CreatedBy = Guid.Parse(bsonValue["created_by"].AsString),
-				ParentId = bsonValue.AsBsonDocument.TryGetValue("parent_id", out BsonValue? parentId) && parentId.IsBsonDocument
-					? Guid.Parse(parentId.AsString)
-					: null,
-				Properties = bsonValue.AsBsonDocument.TryGetValue("properties", out BsonValue? prop) && prop.IsBsonDocument
-					? prop.AsBsonDocument
-					: null,
-				Type = bsonValue["type"].AsString,
-				UpdatedBy = Guid.Parse(bsonValue["updated_by"].AsString),
-			}),
+			Document = ConvertFromBson(pageVersionDatabase.Document) ?? CreateEmptyDocument(),
 			CreatedAt = pageVersionDatabase.CreatedAt,
 			UpdatedAt = pageVersionDatabase.UpdatedAt,
 			ChangeDescription = pageVersionDatabase.ChangeDescription,
@@ -73,7 +56,7 @@ public class PageVersionDomain
 			Id = id,
 			PageId = pageId,
 			Version = 1,
-			Content = updatePageContentBlank.Blocks.Select(item => PageBlockDomain.FromBlank(item, pageId, createdBy)),
+			Document = updatePageContentBlank.Document ?? CreateEmptyDocument(),
 			CreatedAt = DateTime.UtcNow,
 			UpdatedAt = DateTime.UtcNow,
 			CreatedBy = createdBy,
@@ -88,7 +71,7 @@ public class PageVersionDomain
 			Id = Id.ToString(),
 			PageId = PageId.ToString(),
 			Version = Version,
-			Content = new BsonArray((Content ?? []).Select(item => item.ToDatabase().ToBsonDocument()).ToList()),
+			Document = ConvertToBsonDocument(Document),
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy.ToString(),
@@ -103,7 +86,7 @@ public class PageVersionDomain
 			Id = Id,
 			PageId = PageId,
 			Version = Version,
-			Content = Content?.Select(item => item.ToView()).ToList(),
+			Document = Document,
 			CreatedAt = CreatedAt,
 			UpdatedAt = UpdatedAt,
 			CreatedBy = CreatedBy,
@@ -113,19 +96,47 @@ public class PageVersionDomain
 
 	public PageSearchDocument ToSearchDocument(PageDomain pageDomain)
 	{
-		List<PageBlockDomain> blocks = new List<PageBlockDomain>(Content ?? []);
-
 		return new PageSearchDocument()
 		{
 			PageId = pageDomain.Id.ToString(),
 			Title = pageDomain.Title,
 			Description = pageDomain.Description,
-			Blocks = blocks
-				.Where(item => item.HasSearchableContent())
-				.Select(item => item.ToSearchDocument())
-				.ToList(),
+			Blocks = [],
 			UpdatedAt = UpdatedAt,
 			WorkspaceId = pageDomain.WorkspaceId.ToString()
 		};
+	}
+
+	private static object? ConvertFromBson(BsonDocument? document)
+	{
+		if (document == null) return null;
+		return JsonDocument.Parse(document.ToJson());
+	}
+
+	private static BsonDocument? ConvertToBsonDocument(object? obj)
+	{
+		if (obj == null) return null;
+
+		if (obj is BsonDocument bson) return bson;
+
+		if (obj is JsonDocument jsonDoc)
+		{
+			return BsonDocument.Parse(jsonDoc.RootElement.GetRawText());
+		}
+
+		try
+		{
+			string json = JsonSerializer.Serialize(obj);
+			return BsonDocument.Parse(json);
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static object CreateEmptyDocument()
+	{
+		return new { type = "doc", content = Array.Empty<object>() };
 	}
 }

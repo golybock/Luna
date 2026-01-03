@@ -1,7 +1,10 @@
-﻿namespace Luna.Pages.Models.Blank.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Luna.Pages.Models.Blank.Models;
 
 public class UpdatePageContentBlank
 {
-	public IEnumerable<PageBlockBlank> Blocks { get; set; } = new List<PageBlockBlank>();
+	[JsonPropertyName("document")]
+	public object? Document { get; set; }
 	public string ChangeDescription { get; set; } = null!;
 }

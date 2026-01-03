@@ -19,9 +19,9 @@ public class PageVersionDatabase
 	[BsonElement("version")]
 	public int Version  { get; set; }
 
-	[BsonElement("content")]
+	[BsonElement("document")]
 	[BsonIgnoreIfNull]
-	public BsonArray? Content { get; set; }
+	public BsonDocument? Document { get; set; }
 
 	[BsonElement("created_at")]
 	[BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
