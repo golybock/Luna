@@ -15,7 +15,7 @@ export const AuthPage: React.FC = () => {
 	const [email, setEmail] = useState<string>("");
 	const [code, setCode] = useState<string>("");
 	const [error, setError] = useState<string>("");
-	const { loginGoogle, requestCode, signIn, codeRequested, codeRequestAt } = useAuth();
+	const { loginGoogle, requestCode, signIn, codeRequested, codeRequestAt, isAuthenticated } = useAuth();
 	const { resetCodeRequest } = useActions();
 	const router = useRouter();
 
@@ -43,6 +43,12 @@ export const AuthPage: React.FC = () => {
 	const handleSignIn = async () => {
 		await signIn(email, code);
 	}
+
+	useEffect(() => {
+		if (isAuthenticated) {
+			router.push("/start");
+		}
+	}, [isAuthenticated])
 
 	return (
 		<div className={styles.container}>
