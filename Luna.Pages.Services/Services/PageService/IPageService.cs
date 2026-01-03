@@ -22,7 +22,6 @@ public interface IPageService
 	// Queries
 	Task<PageView?> GetPageByIdAsync(GetRequest request);
 	Task<LightPageView?> GetPageLightViewAsync(GetRequest request);
-	Task<IEnumerable<PageBlockView>> GetPageBlocksAsync(GetRequest request);
 	Task<PageFullView?> GetPageFullViewAsync(GetRequest request);
 
 	Task<IEnumerable<LightPageView>> GetWorkspacePagesAsync(GetRequest request, bool includeArchived = false);

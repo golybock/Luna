@@ -11,7 +11,6 @@ using Luna.Pages.Services.Commands.PageContent;
 using Luna.Pages.Services.Commands.Search;
 using Luna.Pages.Services.Queries.Page;
 using Luna.Pages.Services.Queries.PageComment;
-using Luna.Pages.Services.Queries.PageContent;
 using Luna.Pages.Services.Queries.Search;
 using Luna.Pages.Services.Services.WorkspacePermissionService;
 using Luna.Tools.SharedModels.Models;
@@ -198,17 +197,6 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
 
 		return page?.ToLightPageView();
-	}
-
-	public async Task<IEnumerable<PageBlockView>> GetPageBlocksAsync(GetRequest request)
-	{
-		GetPageBlocksQuery query = new GetPageBlocksQuery(request.Id);
-
-		IEnumerable<PageBlockDomain> pageBlocks = await _mediator.Send(query, CancellationToken.None);
-
-		await CheckPermissionAsync(request.Id, request.UserId, WorkspacePermissions.View);
-
-		return pageBlocks.Select(item => item.ToView());
 	}
 
 	public async Task<PageFullView?> GetPageFullViewAsync(GetRequest request)
