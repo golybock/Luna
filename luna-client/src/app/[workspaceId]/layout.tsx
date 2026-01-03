@@ -21,7 +21,7 @@ import { getWorkspacePages } from "@/store/slices/pagesSlice";
 export default function MainLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
 
 	const { pages } = usePages();
-	const { user } = useAuth();
+	const { user, logout } = useAuth();
 	const { setSelectedWorkspace, setPages } = useActions();
 	const { openModal } = useModal();
 	const { selectedWorkspaceId } = useWorkspaces();
@@ -44,11 +44,6 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 				imagePath: "/icons/home_24.svg",
 				path: `/${selectedWorkspaceId}`,
 			},
-			{
-				name: "Inbox",
-				imagePath: "/icons/inbox_24.svg",
-				path: "/inbox",
-			}
 		];
 	}, [selectedWorkspaceId])
 
@@ -58,16 +53,6 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 				name: "Settings",
 				onClick: handleOnClickSettings,
 				imagePath: "/icons/settings_24.svg",
-			},
-			{
-				name: "Templates",
-				path: `/${selectedWorkspaceId}/templates`,
-				imagePath: "/icons/template_24.svg",
-			},
-			{
-				name: "Trash",
-				path: `/${selectedWorkspaceId}/trash`,
-				imagePath: "/icons/trash_24.svg",
 			},
 		]
 	}, [])
@@ -87,6 +72,10 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 		setSelectedWorkspace(null);
 		setPages([]);
 		router.push("/start")
+	}
+	const handleLogout = async () => {
+		await logout();
+		router.push("/signIn")
 	}
 
 	return (
@@ -141,6 +130,9 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 				<div className={styles.navbarFooter}>
 					<p role="button" onClick={navigateToSelectWorkspace}>
 						Select other workspace
+					</p>
+					<p role="button" onClick={handleLogout}>
+						Logout
 					</p>
 				</div>
 			</nav>
