@@ -1,0 +1,543 @@
+﻿.notionEditorWrapper {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: #ffffff;
+	border-radius: 8px;
+	overflow: hidden;
+	position: relative;
+}
+
+.menuBar {
+	display: flex;
+	gap: 8px;
+	padding: 12px 16px;
+	background: var(--secondary-container);
+	border-bottom: 1px solid var(--teriary-container);
+	flex-wrap: wrap;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+
+	.menuGroup {
+		display: flex;
+		gap: 4px;
+		padding-right: 8px;
+		border-right: 1px solid var(--teriary-container);
+
+		&:last-child {
+			border-right: none;
+		}
+	}
+
+	button {
+		padding: 6px 10px;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+		color: var(--secondary-text);
+		transition: all 0.15s ease;
+		font-family: inherit;
+		white-space: nowrap;
+
+		&:hover:not(:disabled) {
+			background: rgba(0, 0, 0, 0.05);
+			border-color: var(--secondary-text);
+		}
+
+		&.isActive {
+			background: var(--secondary-container);
+			border-color: var(--secondary-text);
+			font-weight: 600;
+		}
+
+		&:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+	}
+}
+
+.notionEditor {
+	flex: 1;
+	padding: 40px 96px;
+	overflow-y: auto;
+	font-size: 16px;
+	line-height: 1.5;
+	color: var(--secondary-container);
+
+	&:focus {
+		outline: none;
+	}
+
+	.ProseMirror {
+		outline: none;
+		min-height: 300px;
+
+		> * + * {
+			margin-top: 0.75em;
+		}
+
+		h1, h2, h3, h4, h5, h6 {
+			line-height: 1.3;
+			font-weight: 600;
+			color: #37352f;
+			margin-top: 1.4em;
+			margin-bottom: 0.1em;
+		}
+
+		h1 {
+			font-size: 2.5em;
+			margin-top: 0;
+		}
+
+		h2 {
+			font-size: 1.875em;
+		}
+
+		h3 {
+			font-size: 1.5em;
+		}
+
+		h4 {
+			font-size: 1.25em;
+		}
+
+		h5 {
+			font-size: 1.125em;
+		}
+
+		h6 {
+			font-size: 1em;
+		}
+
+		p {
+			margin: 0;
+			line-height: 1.65;
+		}
+
+		ul, ol {
+			padding: 0 0 0 1.5em;
+			margin: 0.5em 0;
+
+			li {
+				margin: 0.25em 0;
+
+				p {
+					margin: 0;
+				}
+			}
+		}
+
+		ul {
+			list-style-type: disc;
+
+			ul {
+				list-style-type: circle;
+
+				ul {
+					list-style-type: square;
+				}
+			}
+		}
+
+		ol {
+			list-style-type: decimal;
+
+			ol {
+				list-style-type: lower-alpha;
+
+				ol {
+					list-style-type: lower-roman;
+				}
+			}
+		}
+
+		blockquote {
+			border-left: 3px solid #37352f;
+			padding-left: 1em;
+			margin: 1em 0;
+			font-style: italic;
+			color: #6b6b6b;
+		}
+
+		code {
+			background: rgba(135, 131, 120, 0.15);
+			color: #eb5757;
+			padding: 0.2em 0.4em;
+			border-radius: 3px;
+			font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+			font-size: 0.85em;
+		}
+
+		pre {
+			background: #2f2f2f;
+			color: #f8f8f2;
+			font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+			padding: 1em;
+			border-radius: 6px;
+			overflow-x: auto;
+			margin: 1em 0;
+
+			code {
+				background: none;
+				color: inherit;
+				padding: 0;
+				font-size: 0.9em;
+			}
+		}
+
+		hr {
+			border: none;
+			border-top: 1px solid #e5e5e5;
+			margin: 2em 0;
+		}
+
+		table {
+			border-collapse: collapse;
+			table-layout: fixed;
+			width: 100%;
+			margin: 1em 0;
+			overflow: hidden;
+
+			td, th {
+				min-width: 1em;
+				border: 1px solid #e5e5e5;
+				padding: 8px 12px;
+				vertical-align: top;
+				box-sizing: border-box;
+				position: relative;
+
+				> * {
+					margin-bottom: 0;
+				}
+			}
+
+			th {
+				font-weight: 600;
+				text-align: left;
+				background-color: #f7f6f3;
+			}
+
+			.selectedCell:after {
+				z-index: 2;
+				position: absolute;
+				content: "";
+				left: 0;
+				right: 0;
+				top: 0;
+				bottom: 0;
+				background: rgba(200, 200, 255, 0.4);
+				pointer-events: none;
+			}
+
+			.columnResizeHandle {
+				position: absolute;
+				right: -2px;
+				top: 0;
+				bottom: -2px;
+				width: 4px;
+				background-color: #adf;
+				pointer-events: none;
+			}
+		}
+
+		mark {
+			background-color: #fff3bf;
+			border-radius: 2px;
+			padding: 0.125em 0;
+		}
+
+		s {
+			text-decoration: line-through;
+		}
+
+		sub {
+			font-size: 0.75em;
+			vertical-align: sub;
+		}
+
+		sup {
+			font-size: 0.75em;
+			vertical-align: super;
+		}
+
+		.mention {
+			background-color: rgba(46, 170, 220, 0.1);
+			color: #2eaadc;
+			border-radius: 3px;
+			padding: 0.1em 0.3em;
+			font-weight: 500;
+		}
+
+		[style*="text-align: left"] {
+			text-align: left;
+		}
+
+		[style*="text-align: center"] {
+			text-align: center;
+		}
+
+		[style*="text-align: right"] {
+			text-align: right;
+		}
+
+		[style*="text-align: justify"] {
+			text-align: justify;
+		}
+
+		::selection {
+			background-color: rgba(45, 170, 219, 0.3);
+		}
+	}
+
+	.ProseMirror p.is-editor-empty:first-child::before {
+		color: #9b9a97;
+		content: attr(data-placeholder);
+		float: left;
+		height: 0;
+		pointer-events: none;
+	}
+
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 4px;
+
+		&:hover {
+			background: rgba(0, 0, 0, 0.3);
+		}
+	}
+}
+
+.tableMenu {
+	display: flex;
+	gap: 6px;
+	padding: 8px 16px;
+	background: var(--secondary-container);
+	border-top: 1px solid var(--teriary-container);
+	flex-wrap: wrap;
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+
+	button {
+		padding: 4px 8px;
+		background: var(--secondary-container);
+		border: 1px solid var(--teriary-container);
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 12px;
+		color: #37352f;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+
+		&:hover {
+			background: var(--secondary-container);
+			border-color: var(--teriary-container);
+		}
+	}
+}
+
+.slashCommandsPopup {
+	background: white;
+	border-radius: 8px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08);
+	padding: 8px;
+	min-width: 280px;
+	max-height: 400px;
+	overflow-y: auto;
+	z-index: 1000;
+
+	.commandItem {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		border: none;
+		background: transparent;
+		border-radius: 4px;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+		transition: background 0.15s ease;
+
+		&:hover,
+		&.selected {
+			background: rgba(0, 0, 0, 0.05);
+		}
+
+		.commandIcon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+			background: #f7f6f3;
+			border-radius: 4px;
+			font-weight: 600;
+			font-size: 14px;
+			flex-shrink: 0;
+		}
+
+		.commandText {
+			flex: 1;
+			overflow: hidden;
+
+			.commandTitle {
+				font-size: 14px;
+				font-weight: 500;
+				color: #37352f;
+				margin-bottom: 2px;
+			}
+
+			.commandDescription {
+				font-size: 12px;
+				color: #787774;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+		}
+	}
+
+	// Скроллбар для popup
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 3px;
+
+		&:hover {
+			background: rgba(0, 0, 0, 0.3);
+		}
+	}
+}
+
+// Темная тема (опционально)
+@media (prefers-color-scheme: dark) {
+	.notionEditorWrapper {
+		background: var(--secondary-container);
+	}
+
+	.menuBar {
+		background: var(--secondary-container);
+		border-bottom-color: var(--white);
+
+		.menuGroup {
+			border-right-color: var(--teriary-container);
+		}
+
+		button {
+			color: var(--white);
+
+			&:hover:not(:disabled) {
+				background: rgba(255, 255, 255, 0.1);
+				border-color: #4e5255;
+			}
+
+			&.isActive {
+				background: #3e4245;
+				border-color: #4e5255;
+			}
+		}
+	}
+
+	.notionEditor {
+		color: white;
+
+		.ProseMirror {
+			h1, h2, h3, h4, h5, h6 {
+				color: #ffffff;
+			}
+
+			blockquote {
+				border-left-color: #d4d4d4;
+				color: #9b9b9b;
+			}
+
+			code {
+				background: rgba(255, 255, 255, 0.1);
+				color: #ff6b6b;
+			}
+
+			hr {
+				border-top-color: #3e4245;
+			}
+
+			table {
+				td, th {
+					border-color: #3e4245;
+				}
+
+				th {
+					background-color: #25292c;
+				}
+			}
+
+			mark {
+				background-color: #665e00;
+				color: #ffffff;
+			}
+		}
+
+	}
+
+	.tableMenu {
+		background: var(--secondary-container);
+		border-top-color: white;
+
+		button {
+			background: var(--secondary-container);
+			border-color: var(--teriary-container);
+			color: white;
+
+			&:hover {
+				background: #3e4245;
+				border-color: #4e5255;
+			}
+		}
+	}
+
+	.slashCommandsPopup {
+		background: #2f3437;
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+
+		.commandItem {
+			&:hover,
+			&.selected {
+				background: rgba(255, 255, 255, 0.1);
+			}
+
+			.commandIcon {
+				background: #25292c;
+				color: #d4d4d4;
+			}
+
+			.commandText {
+				.commandTitle {
+					color: #ffffff;
+				}
+
+				.commandDescription {
+					color: #9b9b9b;
+				}
+			}
+		}
+	}
+}

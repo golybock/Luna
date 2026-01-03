@@ -31,7 +31,6 @@ const getUserColor = (userId: string): string => {
 		'#52B788',
 	];
 
-	// Создаем хеш из userId
 	let hash = 0;
 	for (let i = 0; i < userId.length; i++) {
 		hash = userId.charCodeAt(i) + ((hash << 5) - hash);
@@ -49,13 +48,29 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 		const updateCursorPositions = () => {
 			const positions: CursorPosition[] = [];
 
+			// Находим контейнер .ProseMirror внутри editorElement
+			const proseMirror = editorElement.querySelector('.ProseMirror') as HTMLElement;
+			if (!proseMirror) return;
+
 			cursors.forEach((cursor) => {
 				try {
-					const blockElement = editorElement.querySelector(
-						`[data-id="${cursor.blockId}"]`
+					// Ищем блок по data-block-id внутри .ProseMirror
+
+					let blockElement = proseMirror.querySelector(
+						`[data-block-id="${cursor.blockId}"]`
 					) as HTMLElement;
 
-					if (!blockElement) return;
+
+					// Если не нашли, пробуем найти через data-id (fallback)
+					if (!blockElement) {
+						blockElement = proseMirror.querySelector(
+							`[data-id="${cursor.blockId}"]`
+						) as HTMLElement;
+					}
+
+					if (!blockElement) {
+						return;
+					}
 
 					const textNode = getTextNodeFromBlock(blockElement);
 					if (!textNode) {
@@ -66,7 +81,7 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 						positions.push({
 							x: rect.left - editorRect.left,
 							y: rect.top - editorRect.top,
-							userName: cursor.user?.displayName || cursor.user?.username || 'Unknown',
+							userName: cursor.userDisplayName || 'Unknown',
 							userId: cursor.userId,
 							color: getUserColor(cursor.userId),
 						});
@@ -75,18 +90,19 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 
 					const range = document.createRange();
 					const textLength = textNode.textContent?.length || 0;
-					const position = Math.min(cursor.position, textLength);
+					const position = Math.max(0, Math.min(cursor.position, textLength));
 
 					range.setStart(textNode, position);
 					range.setEnd(textNode, position);
 
-					const rect = range.getBoundingClientRect();
+					const clientRects = range.getClientRects();
+					const rect = clientRects.length > 0 ? clientRects[clientRects.length - 1] : range.getBoundingClientRect();
 					const editorRect = editorElement.getBoundingClientRect();
 
 					positions.push({
 						x: rect.left - editorRect.left,
 						y: rect.top - editorRect.top,
-						userName: cursor.user?.displayName || cursor.user?.username || 'Unknown',
+						userName: cursor.userDisplayName || 'Unknown',
 						userId: cursor.userId,
 						color: getUserColor(cursor.userId),
 					});
@@ -99,12 +115,8 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 		};
 
 		const getTextNodeFromBlock = (blockElement: HTMLElement): Text | null => {
-			const textContainer = blockElement.querySelector(
-				'.ce-paragraph, .ce-header, .cdx-block'
-			);
-
-			if (!textContainer) return null;
-
+			// В Tiptap блоки рендерятся как <p data-block-id="...">, <h1>, и т.д.
+			// Текст находится прямо внутри этих элементов
 			const findTextNode = (node: Node): Text | null => {
 				if (node.nodeType === Node.TEXT_NODE) {
 					return node as Text;
@@ -118,11 +130,12 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 				return null;
 			};
 
-			return findTextNode(textContainer);
+			return findTextNode(blockElement);
 		};
 
-		updateCursorPositions();
-
+		// Небольшая задержка для того, чтобы редактор успел отрендериться
+		const initialTimeout = setTimeout(updateCursorPositions, 100);
+		
 		const handleUpdate = () => {
 			requestAnimationFrame(updateCursorPositions);
 		};
@@ -133,6 +146,7 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 		const interval = setInterval(updateCursorPositions, 500);
 
 		return () => {
+			clearTimeout(initialTimeout);
 			window.removeEventListener('scroll', handleUpdate, true);
 			window.removeEventListener('resize', handleUpdate);
 			clearInterval(interval);

@@ -1,4 +1,4 @@
-﻿$small-mobile-width: 400px;
+$small-mobile-width: 400px;
 // среднее разрешение между 768 и 360
 $mobile-transitional: 568px;
 // мобильные - x <=768
@@ -64,7 +64,7 @@ $desktop-header-height: 96px;
 		//border-top: 2px solid transparent;
 		background-clip: padding-box;
 
-		&:hover{
+		&:hover {
 			background: var(--gray);
 			background-clip: padding-box;
 		}

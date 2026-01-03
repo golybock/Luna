@@ -1,0 +1,66 @@
+@import "src/styles/global";
+
+.editor {
+  font-family: "noto-sans", system-ui;
+  color: var(--text);
+  background: transparent;
+  min-height: 220px;
+  position: relative;
+}
+
+.editor :global(.ProseMirror) {
+  outline: none;
+  min-height: 220px;
+  background: var(--secondary-container);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+
+.editor :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  color: #808080;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.editor :global(.ProseMirror p) {
+  line-height: 1.6;
+}
+
+.editor :global(.ProseMirror h1),
+.editor :global(.ProseMirror h2),
+.editor :global(.ProseMirror h3) {
+  margin: 8px 0;
+}
+
+.editor :global(.ProseMirror img) {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.editor :global(.ProseMirror hr) {
+  border: none;
+  border-top: 1px solid var(--teriary-container);
+  margin: 12px 0;
+}
+
+.editor :global(.ProseMirror .task-list) {
+  list-style: none;
+  padding-left: 0;
+}
+
+.editor :global(.ProseMirror .task-list-item) {
+  display: flex;
+  gap: 8px;
+}
+
+.editor :global(.ProseMirror .task-list-item input) {
+  margin-top: 5px;
+}
+
+.overlay {
+  position: relative;
+}
+

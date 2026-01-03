@@ -46,11 +46,11 @@ body {
 	--secondary-variant: #312244;
 	--secondary-variant-dark: #3e1f47;
 
-	p, h1, h2, h3, h4, h5, h6, label, input, a {
+	p, h1, h2, h3, h4, h5, h6, label, input, a, span {
 		margin: 0;
 		font-family: "noto-sans", system-ui;
 	}
-	
+
 	.input-label {
 		display: flex;
 		color: var(--secondary-text);
@@ -76,19 +76,19 @@ body {
 		font-size: 40px;
 	}
 
-	h3{
+	h3 {
 		font-size: 32px;
 	}
 
-	h4{
+	h4 {
 		font-size: 24px;
 	}
 
-	h5{
+	h5 {
 		font-size: 20px;
 	}
 
-	h6{
+	h6 {
 		font-size: 16px;
 	}
 
@@ -98,16 +98,16 @@ body {
 		font-size: 14px;
 	}
 
-	a{
+	a {
 		color: var(--text);
 		text-align: center;
 	}
 
-	.modalOpen{
+	.modalOpen {
 		overflow: hidden;
 	}
 
-	.row{
+	.row {
 		display: flex;
 		flex-direction: row;
 		gap: 32px;
@@ -132,7 +132,7 @@ body {
 	--modal-container-padding-bottom: 0;
 
 	// container on mobile
-	@media screen and (max-width: $desktop-width){
+	@media screen and (max-width: $desktop-width) {
 		--modal-container-width: 100%;
 		--modal-container-height: calc(100% - 56px);
 		--modal-container-border-radius: 24px 24px 0 0;
@@ -144,4 +144,32 @@ body {
 	--modal-cross-right: -32px;
 	--modal-cross-top: -12px;
 	--modal-cross-left: auto;
+
+
+	p.is-editor-empty:first-child::before {
+		color: #9b9a97;
+		content: attr(data-placeholder);
+		height: 0;
+		pointer-events: none;
+	}
+
+	.ProseMirror p.is-empty::before {
+		color: #9b9a97;
+		content: attr(data-placeholder);
+		height: 0;
+		pointer-events: none;
+	}
+
+	.ProseMirror h1.is-empty::before,
+	.ProseMirror h2.is-empty::before,
+	.ProseMirror h3.is-empty::before,
+	.ProseMirror h4.is-empty::before,
+	.ProseMirror h5.is-empty::before,
+	.ProseMirror h6.is-empty::before {
+		color: #9b9a97;
+		content: attr(data-placeholder);
+		height: 0;
+		pointer-events: none;
+		font-weight: 400;
+	}
 }
