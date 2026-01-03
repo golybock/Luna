@@ -17,6 +17,7 @@ interface UsePageWsOptions {
 interface UsePageWsReturn {
 	page: PageFullView | null;
 	pageDocument: any;
+	users: UserView[];
 	cursors: UserCursorView[];
 	emoji: string | null;
 	pageTitle: string | null;
@@ -429,6 +430,7 @@ export function usePageWs(
 		cover,
 		description,
 		cursors,
+		users,
 		isConnected,
 		isConnecting,
 		error,

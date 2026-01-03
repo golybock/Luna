@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { ChangeEvent, useCallback } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Card from "@/ui/card/Card";
 import Image from "next/image";
 import Input from "@/ui/input/Input";
@@ -10,9 +10,9 @@ import { PageSettingsModal } from "@/components/modals/pageSettings/PageSettings
 import Button from "@/ui/button/Button";
 import { EmojiPicker } from "@/ui/emojiPicker/EmpojiPicker";
 import { usePageWs } from "@/hooks/usePageWs";
-import { Editor } from "@/components/editor/Editor";
-import { PageBlockView } from "@/models/page/view/PageBlockView";
-import { PageBlockBlank } from "@/models/page/blank/PageBlockBlank";
+import { TiptapEditor } from "@/components/editor/TiptapEditor";
+import { AvatarImage } from "@/components/ui/avatarImage/AvatarImage";
+import { getInitials } from "@/tools/stringTools";
 
 interface PageProps {
 	pageId: string;
@@ -22,16 +22,17 @@ interface PageProps {
 export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 
 	const { openModal } = useModal();
+	const initialTimeRef = useRef<number>(Date.now());
 
 	const {
 		page,
-		blocks,
+		pageDocument,
 		emoji,
 		pageTitle,
 		cover,
 		description,
 		cursors,
-		isConnecting,
+		users,
 		error,
 		setEmoji,
 		status,
@@ -39,7 +40,7 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 		setPageTitle,
 		setDescription,
 		setCover,
-		saveBlocks,
+		saveDocument,
 		savePageData,
 	} = usePageWs(pageId, {
 		autoConnect: true,
@@ -68,12 +69,20 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 		await savePageData({ emoji: emoji });
 	};
 
-	const handleEditorChange = useCallback(async (newBlocks: PageBlockBlank[] | PageBlockView[]) => {
-		await saveBlocks(newBlocks);
-	}, []);
+	const editorData = useMemo(() => ({
+		document: pageDocument,
+		time: page?.pageVersionView?.updatedAt
+			? new Date(page.pageVersionView.updatedAt).getTime()
+			: initialTimeRef.current,
+		version: page?.pageVersionView?.version
+	}), [pageDocument, page?.pageVersionView?.updatedAt, page?.pageVersionView?.version]);
+
+	const handleEditorChange = useCallback(async (newDocument: any) => {
+		await saveDocument(newDocument);
+	}, [saveDocument]);
 
 	const handleCursorChange = useCallback(async (blockId: string, position: number) => {
-		await setCursor({ blockId, position });
+		setCursor({ blockId, position });
 	}, [setCursor]);
 
 	const handleOpenSettings = () => {
@@ -82,14 +91,13 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 		}
 	};
 
-	if (isConnecting) return <div>Подключение...</div>;
 	if (error) return <div>Ошибка: {error.message}</div>;
 	if (!page) return <div>Загрузка...</div>;
 
 	return (
 		<div className={styles.container}>
 
-			<div className={styles.imageContainer} style={{height: cover ? "auto" : "24px"}}>
+			<div className={styles.imageContainer} style={{ height: cover ? "auto" : "24px" }}>
 				{cover && (
 					<Image
 						src={cover}
@@ -130,20 +138,34 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 									/>
 								</div>
 							</div>
+							<div className={styles.additionalInfo}>
+								<div className={styles.usersList}>
+									{users.map((cursor) => (
+										<AvatarImage
+											key={cursor.id}
+											src={cursor.image}
+											alt={cursor.displayName || cursor.username || cursor.id}
+											initials={getInitials(cursor.displayName || cursor.username || cursor.id)}
+										/>
+									))}
+								</div>
+							</div>
 						</div>
 					)}
 				</Card>
-				<Editor
+				<TiptapEditor
 					onChange={handleEditorChange}
 					onCursorChange={handleCursorChange}
 					cursors={cursors}
-					data={{
-						blocks: blocks,
-						time: Date.now(),
-						version: page.pageVersionView?.version
-					}}
+					data={editorData}
 					scrollToBlockId={blockId}
 				/>
+				<div className={`${styles.statusBadge} ${styles[status.tone]}`}>
+					<span className={styles.statusDot}/>
+					{status.label && (
+						<span className={styles.statusText}>{status.label}</span>
+					)}
+				</div>
 			</div>
 		</div>
 	)
