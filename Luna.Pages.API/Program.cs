@@ -6,6 +6,7 @@ using Luna.Pages.Repositories.Repositories.PageVersion.Command;
 using Luna.Pages.Repositories.Repositories.PageVersion.Query;
 using Luna.Pages.Repositories.Repositories.Search.Command;
 using Luna.Pages.Repositories.Repositories.Search.Query;
+using Luna.Pages.Repositories.Repositories.Session;
 using Luna.Pages.Repositories.Repositories.WorkspaceUsers;
 using Luna.Pages.Repositories.WorkspacePermissionRepository;
 using Luna.Pages.Services.PermissionEventHandler;
@@ -77,6 +78,7 @@ builder.Services.AddScoped<IPageSearchCommandRepository, PageSearchCommandReposi
 builder.Services.AddScoped<IPageSearchQueryRepository, PageSearchQueryRepository>();
 
 builder.Services.AddSingleton<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
+builder.Services.AddSingleton<ISessionCacheRepository, SessionCacheRepository>(provider => new SessionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 
 DatabaseOptions databaseOptions = new DatabaseOptions()
 {

@@ -1,13 +1,14 @@
-﻿using System.Collections.Concurrent;
-using Luna.Pages.Models.Blank.Models;
+﻿using Luna.Pages.Models.Blank.Models;
 using Luna.Pages.Models.Domain.Models;
 using Luna.Pages.Models.View.Additional;
 using Luna.Pages.Models.View.Models;
+using Luna.Pages.Repositories.Repositories.Session;
 using Luna.Pages.Services.Services.PageService;
 using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.Web;
 using Luna.Users.gRPC.Client.Services;
 using Luna.Users.Models.Domain.Models;
+using Luna.Users.Models.View.Models;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Luna.Pages.API.Hubs;
@@ -17,20 +18,15 @@ public class PageHub : HubBase, IPageHub
 	private readonly IPageService _pageService;
 	private readonly IUserServiceClient _userServiceClient;
 	private readonly ILogger<PageHub> _logger;
+	private readonly ISessionCacheRepository _sessionCacheRepository;
 
-	// page_[pageId] - HashSet[userIds] - пользователи на конкретных страницах
-	private static readonly ConcurrentDictionary<string, HashSet<Guid>> PageUsersId = new();
-	// page_[pageId] - IEnumerable[userCursor] - курсоры пользователей на конкретных страницах
-	private static readonly ConcurrentDictionary<string, List<UserCursorDomain>> UserPageCursors = new();
-
-	// Словарь для отслеживания активных страниц пользователей (connectionId -> pageId)
-	private static readonly ConcurrentDictionary<string, string> UserPages = new();
-
-	public PageHub(ILogger<PageHub> logger, IPageService pageService, IUserServiceClient userServiceClient)
+	public PageHub(ILogger<PageHub> logger, IPageService pageService, IUserServiceClient userServiceClient,
+		ISessionCacheRepository sessionCacheRepository)
 	{
 		_logger = logger;
 		_pageService = pageService;
 		_userServiceClient = userServiceClient;
+		_sessionCacheRepository = sessionCacheRepository;
 	}
 
 	public override async Task OnConnectedAsync()
@@ -41,7 +37,8 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		_logger.LogInformation("User {UserId} connected with connection {ContextConnectionId}", UserId, Context.ConnectionId);
+		_logger.LogInformation("User {UserId} connected with connection {ContextConnectionId}", UserId,
+			Context.ConnectionId);
 		await base.OnConnectedAsync();
 	}
 
@@ -49,44 +46,44 @@ public class PageHub : HubBase, IPageHub
 	{
 		string connectionId = Context.ConnectionId;
 
-		if (UserId.HasValue && UserPages.TryGetValue(connectionId, out string? pageId))
+		if (UserId.HasValue)
 		{
-			await LeavePageInternal(pageId, UserId.Value, connectionId);
+			string? pageId = await _sessionCacheRepository.GetConnectionPageAsync(connectionId);
+
+			if (pageId != null)
+			{
+				await LeavePageInternal(pageId, UserId.Value.ToString(), connectionId);
+			}
 		}
 
 		_logger.LogInformation("User {UserId} disconnected", UserId);
 		await base.OnDisconnectedAsync(exception);
 	}
 
-	private async Task LeavePageInternal(string pageId, Guid userId, string connectionId)
+	private async Task LeavePageInternal(string pageId, string userId, string connectionId)
 	{
 		try
 		{
 			string group = $"page_{pageId}";
 			await Groups.RemoveFromGroupAsync(connectionId, group);
 
-			if (PageUsersId.TryGetValue(pageId, out HashSet<Guid>? users))
-			{
-				users.Remove(userId);
-				if (users.Count == 0)
-				{
-					PageUsersId.TryRemove(pageId, out _);
-				}
-			}
+			await _sessionCacheRepository.RemoveUserFromPageAsync(pageId, userId);
+			await _sessionCacheRepository.RemoveUserCursorAsync(pageId, userId);
+			await _sessionCacheRepository.RemoveConnectionPageAsync(connectionId);
 
-			if (UserPageCursors.TryGetValue(group, out List<UserCursorDomain>? userCursors))
-			{
-				UserCursorDomain? user = userCursors.FirstOrDefault(user => user.UserId == userId);
-				if (user != null) userCursors.Remove(user);
-				if (userCursors.Count == 0)
-				{
-					PageUsersId.TryRemove(pageId, out _);
-				}
-			}
+			List<UserCursorDomain> cursors = (await _sessionCacheRepository.GetPageCursorsAsync(pageId)).ToList();
+			List<UserDomain> users = (await _sessionCacheRepository.GetPageUsersAsync(pageId)).ToList();
 
-			UserPages.TryRemove(connectionId, out _);
+			List<UserCursorView> cursorViews = cursors
+				.Select(c => c.ToView()).ToList();
 
-			await Clients.Group(group).SendAsync("UserLeftPage", new { userId, pageId });
+			List<UserView> userViews = users
+				.Select(c => c.ToView()).ToList();
+
+			await Clients.OthersInGroup(group).SendAsync("CursorSet", cursorViews);
+			await Clients.OthersInGroup(group).SendAsync("UsersSet", userViews);
+
+			// await Clients.Group(group).SendAsync("UserLeftPage", new {userId, pageId});
 
 			_logger.LogInformation("User {UserId} left page {PageId}", userId, pageId);
 		}
@@ -96,7 +93,7 @@ public class PageHub : HubBase, IPageHub
 		}
 	}
 
-	public async Task JoinPage(Guid pageId)
+	public async Task JoinPage(string pageId)
 	{
 		if (!UserId.HasValue)
 		{
@@ -104,43 +101,57 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		string pid = pageId.ToString();
-		string group = $"page_{pid}";
+		string group = $"page_{pageId}";
 		string connectionId = Context.ConnectionId;
 
-		// Если уже на другой странице — выйдем из неё
-		if (UserPages.TryGetValue(connectionId, out string? oldPageId) && oldPageId != pid)
+		string? oldPageId = await _sessionCacheRepository.GetConnectionPageAsync(connectionId);
+		if (oldPageId != null && oldPageId != pageId)
 		{
-			await LeavePageInternal(oldPageId, UserId.Value, connectionId);
+			await LeavePageInternal(oldPageId, UserId.Value.ToString(), connectionId);
 		}
 
 		await Groups.AddToGroupAsync(connectionId, group);
 
-		PageUsersId.AddOrUpdate(pid, _ => [UserId.Value],
-			(_, set) => { set.Add(UserId.Value); return set; });
+		UserDomain? userDomain = null;
 
-		UserPages[connectionId] = pid;
+		try
+		{
+			userDomain = await _userServiceClient.GetUserByIdAsync(UserId.Value);
+		}
+		catch (Exception e)
+		{
+			_logger.LogError("Error get userDomain, userId: ${UserId}", UserId.Value.ToString());
+		}
 
-		await Clients.Group(group).SendAsync("UserJoinedPage", new { userId = UserId.Value, pageId = pid });
-		_logger.LogInformation("User {UserId} joined page {PageId}", UserId, pid);
+		await _sessionCacheRepository.AddUserToPageAsync(pageId, UserId.Value.ToString(), userDomain);
+		await _sessionCacheRepository.SetConnectionPageAsync(connectionId, pageId);
+
+		List<UserDomain> users = (await _sessionCacheRepository.GetPageUsersAsync(pageId)).ToList();
+
+		List<UserView> userViews = users
+			.Select(c => c.ToView()).ToList();
+
+		await Clients.OthersInGroup(group).SendAsync("UsersSet", userViews);
+		_logger.LogInformation("User {UserId} joined page {PageId}", UserId, pageId);
 	}
 
-	public async Task LeavePage(Guid pageId)
+	public async Task LeavePage(string pageId)
 	{
 		if (!UserId.HasValue)
 		{
 			Context.Abort();
 			return;
 		}
-		await LeavePageInternal(pageId.ToString(), UserId.Value, Context.ConnectionId);
+
+		await LeavePageInternal(pageId, UserId.Value.ToString(), Context.ConnectionId);
 	}
 
 	public async Task Pong(DateTime timestamp)
 	{
-		await Clients.Caller.SendAsync("Pong", new { sent = timestamp, server = DateTime.UtcNow });
+		await Clients.Caller.SendAsync("Pong", new {sent = timestamp, server = DateTime.UtcNow});
 	}
 
-	public async Task GetPageData(Guid pageId)
+	public async Task GetPageData(string pageId)
 	{
 		if (!UserId.HasValue)
 		{
@@ -148,12 +159,12 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		GetRequest getRequest = new GetRequest {Id = new Guid(pageId), UserId = UserId.Value};
 		PageFullView? page = await _pageService.GetPageFullViewAsync(getRequest);
 		await Clients.Caller.SendAsync("PageData", page);
 	}
 
-	public async Task SetCursor(Guid pageId, UserCursorBlank userCursorBlank)
+	public async Task SetCursor(string pageId, UserCursorBlank userCursorBlank)
 	{
 		if (!UserId.HasValue)
 		{
@@ -161,31 +172,33 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		string pid = pageId.ToString();
-		string group = $"page_{pid}";
+		string group = $"page_{pageId}";
 
-		List<UserCursorDomain> cursors = UserPageCursors.GetOrAdd(pid, _ => new List<UserCursorDomain>());
+		List<UserCursorDomain> cursors = (await _sessionCacheRepository.GetPageCursorsAsync(pageId)).ToList();
 
-		UserCursorDomain? existingCursor = cursors.FirstOrDefault(c => c.User?.Id == UserId.Value);
+		UserCursorDomain? existingCursor = cursors.FirstOrDefault(c => c.UserId == UserId.Value.ToString());
 
 		if (existingCursor != null)
 		{
-			UserCursorDomain cursorDomain = UserCursorDomain.FromBlank(userCursorBlank, existingCursor.User, UserId.Value);
+			UserCursorDomain cursorDomain = UserCursorDomain.FromBlank(userCursorBlank, UserId.Value.ToString(), existingCursor.UserDisplayName);
 
-			// удаляем старый курсор, добавляем новый
 			cursors.Remove(existingCursor);
 			cursors.Add(cursorDomain);
+
+			await _sessionCacheRepository.UpsertUserCursorAsync(pageId, cursorDomain);
 		}
 		else
 		{
 			try
 			{
-				UserDomain? userDomain = await _userServiceClient.GetUserByIdAsync(UserId.Value);
+				UserDomain? user = await _sessionCacheRepository.GetPageUserByIdAsync(pageId,  UserId.Value.ToString());
 
-				UserCursorDomain cursorDomain = UserCursorDomain.FromBlank(userCursorBlank, userDomain, UserId.Value);
+				UserCursorDomain cursorDomain =
+					UserCursorDomain.FromBlank(userCursorBlank, UserId.Value.ToString(), user?.DisplayName ?? "Unknow");
 
-				// добавляем новый курсор с данными пользователя
-				UserPageCursors[pid].Add(cursorDomain);
+				cursors.Add(cursorDomain);
+
+				await _sessionCacheRepository.UpsertUserCursorAsync(pageId, cursorDomain);
 			}
 			catch (Exception e)
 			{
@@ -194,13 +207,12 @@ public class PageHub : HubBase, IPageHub
 		}
 
 		List<UserCursorView> allCursors = cursors
-			.Select(c => c.ToView()).
-			ToList();
+			.Select(c => c.ToView()).ToList();
 
 		await Clients.OthersInGroup(group).SendAsync("CursorSet", allCursors);
 	}
 
-	public async Task UpdatePage(Guid pageId, PatchPageBlank patchPageBlank)
+	public async Task UpdatePage(string pageId, PatchPageBlank patchPageBlank)
 	{
 		if (!UserId.HasValue)
 		{
@@ -210,18 +222,18 @@ public class PageHub : HubBase, IPageHub
 
 		UpdateRequest<PatchPageBlank> request = new UpdateRequest<PatchPageBlank>
 		{
-			ObjectId = pageId,
+			ObjectId = new Guid(pageId),
 			UserId = UserId.Value,
 			Blank = patchPageBlank
 		};
 
-		bool rs = await _pageService.UpdatePageAsync(request);
+		bool result = await _pageService.UpdatePageAsync(request);
 
 		string group = $"page_{pageId}";
-		await Clients.OthersInGroup(group).SendAsync("PageUpdated", new { pageId });
+		await Clients.OthersInGroup(group).SendAsync("PageUpdated", new {pageId});
 	}
 
-	public async Task UpdatePageContent(Guid pageId, UpdatePageContentBlank pageContentBlank)
+	public async Task UpdatePageContent(string pageId, UpdatePageContentBlank pageContentBlank)
 	{
 		if (!UserId.HasValue)
 		{
@@ -231,32 +243,25 @@ public class PageHub : HubBase, IPageHub
 
 		UpdateRequest<UpdatePageContentBlank> request = new UpdateRequest<UpdatePageContentBlank>
 		{
-			ObjectId = pageId,
+			ObjectId = new Guid(pageId),
 			UserId = UserId.Value,
 			Blank = pageContentBlank
 		};
 
 		await _pageService.UpdatePageContentAsync(request);
 
-		// После обновления вернем свежие блоки
-		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
-		IEnumerable<PageBlockView> blocks = await _pageService.GetPageBlocksAsync(getRequest);
-		await Clients.OthersInGroup($"page_{pageId}").SendAsync("PageContentUpdated", new { pageId, blocks });
+		GetRequest getRequest = new GetRequest {Id = new Guid(pageId), UserId = UserId.Value};
+		PageFullView? pageFull = await _pageService.GetPageFullViewAsync(getRequest);
+
+		object? document = pageFull?.PageVersionView?.Document;
+		int version = pageFull?.PageVersionView?.Version ?? 0;
+		DateTime? updatedAt = pageFull?.PageVersionView?.UpdatedAt;
+
+		await Clients.OthersInGroup($"page_{pageId}")
+			.SendAsync("PageContentUpdated", new {pageId, document, version, updatedAt});
 	}
 
-	public async Task GetPageComments(Guid pageId)
-	{
-		if (!UserId.HasValue)
-		{
-			Context.Abort();
-			return;
-		}
-		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
-		var comments = await _pageService.GetPageCommentsAsync(getRequest);
-		await Clients.Caller.SendAsync("PageComments", new { pageId, comments });
-	}
-
-	public async Task CreateComment(Guid pageId, CreatePageCommentBlank createPageCommentBlank)
+	public async Task GetPageComments(string pageId)
 	{
 		if (!UserId.HasValue)
 		{
@@ -264,7 +269,20 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		createPageCommentBlank.PageId = pageId;
+		GetRequest getRequest = new GetRequest {Id = new Guid(pageId), UserId = UserId.Value};
+		IEnumerable<PageCommentView> comments = await _pageService.GetPageCommentsAsync(getRequest);
+		await Clients.Caller.SendAsync("PageComments", new {pageId, comments});
+	}
+
+	public async Task CreateComment(string pageId, CreatePageCommentBlank createPageCommentBlank)
+	{
+		if (!UserId.HasValue)
+		{
+			Context.Abort();
+			return;
+		}
+
+		createPageCommentBlank.PageId = new Guid(pageId);
 		BlankRequest<CreatePageCommentBlank> request = new BlankRequest<CreatePageCommentBlank>
 		{
 			UserId = UserId.Value,
@@ -272,12 +290,12 @@ public class PageHub : HubBase, IPageHub
 		};
 		await _pageService.CreatePageCommentAsync(request);
 
-		GetRequest getRequest = new GetRequest { Id = pageId, UserId = UserId.Value };
+		GetRequest getRequest = new GetRequest {Id = new Guid(pageId), UserId = UserId.Value};
 		IEnumerable<PageCommentView> comments = await _pageService.GetPageCommentsAsync(getRequest);
-		await Clients.Group($"page_{pageId}").SendAsync("PageCommentsUpdated", new { pageId, comments });
+		await Clients.Group($"page_{pageId}").SendAsync("PageCommentsUpdated", new {pageId, comments});
 	}
 
-	public async Task UpdateComment(Guid commentId, CreatePageCommentBlank createPageCommentBlank)
+	public async Task UpdateComment(string commentId, CreatePageCommentBlank createPageCommentBlank)
 	{
 		if (!UserId.HasValue)
 		{
@@ -295,16 +313,16 @@ public class PageHub : HubBase, IPageHub
 
 		UpdateRequest<PatchPageCommentBlank> request = new UpdateRequest<PatchPageCommentBlank>
 		{
-			ObjectId = commentId,
+			ObjectId = new Guid(commentId),
 			UserId = UserId.Value,
 			Blank = patch
 		};
 
 		await _pageService.UpdatePageCommentAsync(request);
-		await Clients.Caller.SendAsync("CommentUpdated", new { commentId });
+		await Clients.Caller.SendAsync("CommentUpdated", new {commentId});
 	}
 
-	public async Task DeleteComment(Guid commentId)
+	public async Task DeleteComment(string commentId)
 	{
 		if (!UserId.HasValue)
 		{
@@ -312,8 +330,8 @@ public class PageHub : HubBase, IPageHub
 			return;
 		}
 
-		DeleteRequest request = new DeleteRequest { ObjectId = commentId, UserId = UserId.Value };
+		DeleteRequest request = new DeleteRequest {ObjectId = new Guid(commentId), UserId = UserId.Value};
 		await _pageService.DeletePageCommentAsync(request);
-		await Clients.Caller.SendAsync("CommentDeleted", new { commentId });
+		await Clients.Caller.SendAsync("CommentDeleted", new {commentId});
 	}
 }
