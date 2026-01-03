@@ -15,7 +15,7 @@ public class PageVersionQueryRepository : PageVersionRepositoryBase, IPageVersio
 		CancellationToken cancellationToken = default)
 	{
 		FilterDefinition<PageVersionDatabase> filter = Builders<PageVersionDatabase>.Filter.And(
-			Builders<PageVersionDatabase>.Filter.Eq(nameof(PageVersionDatabase.PageId), pageId),
+			Builders<PageVersionDatabase>.Filter.Eq(nameof(PageVersionDatabase.PageId), pageId.ToString()),
 			Builders<PageVersionDatabase>.Filter.Eq(nameof(PageVersionDatabase.Version), version)
 		);
 
