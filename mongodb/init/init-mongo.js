@@ -3,7 +3,6 @@ db = db.getSiblingDB('luna_pages');
 // Удаление существующих коллекций, если они существуют
 db.page.drop();
 db.page_versions.drop();
-db.page_blocks.drop();
 db.page_comments.drop();
 
 db.createCollection('page');
