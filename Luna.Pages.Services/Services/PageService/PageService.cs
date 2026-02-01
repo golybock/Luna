@@ -2,13 +2,14 @@
 using Luna.Pages.Models.Database.Additional;
 using Luna.Pages.Models.Database.Models;
 using Luna.Pages.Models.Domain.Models;
+using System.Text.Json;
 using Luna.Pages.Models.View.Additional;
 using Luna.Pages.Models.View.Models;
 using Luna.Pages.Repositories.Repositories.Page.Query;
+using Luna.Pages.Repositories.Repositories.OutboxRepository;
 using Luna.Pages.Services.Commands.Page;
 using Luna.Pages.Services.Commands.PageComment;
 using Luna.Pages.Services.Commands.PageContent;
-using Luna.Pages.Services.Commands.Search;
 using Luna.Pages.Services.Queries.Page;
 using Luna.Pages.Services.Queries.PageComment;
 using Luna.Pages.Services.Queries.Search;
@@ -16,6 +17,7 @@ using Luna.Pages.Services.Services.WorkspacePermissionService;
 using Luna.Tools.SharedModels.Models;
 using Luna.Tools.SharedModels.Models.API;
 using Luna.Tools.SharedModels.Models.Exceptions;
+using Luna.Tools.SharedModels.Models.Outbox;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -26,17 +28,20 @@ public class PageService : IPageService
 	private readonly IMediator _mediator;
 	private readonly IWorkspacePermissionService _workspacePermissionService;
 	private readonly IPageQueryRepository _pageQueryRepository;
+	private readonly IOutboxRepository _outboxRepository;
 	private readonly ILogger<PageService> _logger;
 
 	public PageService(
 		IMediator mediator,
 		IWorkspacePermissionService workspacePermissionService,
 		IPageQueryRepository pageQueryRepository,
+		IOutboxRepository outboxRepository,
 		ILogger<PageService> logger)
 	{
 		_mediator = mediator;
 		_workspacePermissionService = workspacePermissionService;
 		_pageQueryRepository = pageQueryRepository;
+		_outboxRepository = outboxRepository;
 		_logger = logger;
 	}
 
@@ -50,17 +55,7 @@ public class PageService : IPageService
 
 		PageDomain newPageIndex = PageDomain.FromBlank(pageId, request.UserId, request.Blank);
 
-		IndexPageCommand indexPageCommand = new IndexPageCommand(new PageVersionDomain(), newPageIndex);
-
-		// пробуем индексировать при создании
-		try
-		{
-			await _mediator.Send(indexPageCommand, CancellationToken.None);
-		}
-		catch (Exception e)
-		{
-			Console.WriteLine(e);
-		}
+		await EnqueueIndexAsync(newPageIndex.Id);
 
 		return pageId;
 	}
@@ -94,9 +89,8 @@ public class PageService : IPageService
 		await CheckPermissionAsync(request.ObjectId, request.UserId, WorkspacePermissions.Edit);
 
 		DeletePageCommand command = new DeletePageCommand(request.ObjectId, request.UserId);
-		DeletePageIndexCommand deletePageIndexCommand = new DeletePageIndexCommand(request.ObjectId.ToString());
 
-		await _mediator.Send(deletePageIndexCommand, CancellationToken.None);
+		await EnqueueDeleteAsync(request.ObjectId);
 		return await _mediator.Send(command, CancellationToken.None);
 	}
 
@@ -108,22 +102,7 @@ public class PageService : IPageService
 
 		bool updated = await _mediator.Send(command, CancellationToken.None);
 
-		// todo: похоже на костыль
-		PageFullDomain? pageFull = await GetPageFullDomainAsync(new GetRequest(){Id = request.ObjectId, UserId = request.UserId});
-
-		if (pageFull != null)
-		{
-			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
-			try
-			{
-				bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
-				_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
-			}
-			catch (Exception e)
-			{
-				_logger.LogError("Error indexing Page Content: {Error}", e);
-			}
-		}
+		await EnqueueIndexAsync(request.ObjectId);
 
 		return updated;
 	}
@@ -136,22 +115,7 @@ public class PageService : IPageService
 
 		bool updated = await _mediator.Send(command, CancellationToken.None);
 
-		// todo: похоже на костыль
-		PageFullDomain? pageFull = await GetPageFullDomainAsync(new GetRequest(){Id = request.ObjectId, UserId = request.UserId});
-
-		if (pageFull != null)
-		{
-			IndexPageCommand indexPageCommand = new IndexPageCommand(pageFull.PageVersion, pageFull.Page);
-			try
-			{
-				bool indexed = await _mediator.Send(indexPageCommand, CancellationToken.None);
-				_logger.LogInformation("Indexed Page Content: {Indexed}", indexed);
-			}
-			catch (Exception e)
-			{
-				_logger.LogError("Error indexing Page Content: {Error}", e);
-			}
-		}
+		await EnqueueIndexAsync(request.ObjectId);
 
 		return updated;
 	}
@@ -297,8 +261,7 @@ public class PageService : IPageService
 
 		return statistics.ToView();
 	}
-
-	// при ошибке в ES идем искать в бд
+	
 	public async Task<List<LightPageView>> SearchPagesAsync(SearchGetRequest request)
 	{
 		IEnumerable<LightPageView> pages;
@@ -311,7 +274,12 @@ public class PageService : IPageService
 		{
 			pages = await _mediator.Send(queryPage, CancellationToken.None);
 		}
-		catch (Exception e)
+		catch (Exception)
+		{
+			pages = [];
+		}
+
+		if (!pages.Any())
 		{
 			pages = await SearchPagesByTitleAsync(
 				new GetRequest()
@@ -355,5 +323,44 @@ public class PageService : IPageService
 			workspacePermission);
 
 		if (!available) throw new NotPermittedException("You do not have permission to this workspace action");
+	}
+
+	private async Task EnqueueIndexAsync(Guid pageId)
+	{
+		OutboxMessageDatabase outboxMessage = new OutboxMessageDatabase
+		{
+			Id = Guid.NewGuid(),
+			Type = OutboxMessageTypes.PageIndex,
+			Payload = JsonSerializer.Serialize(new PageIndexOutboxPayload { PageId = pageId }),
+			Status = OutboxMessageStatus.Pending,
+			Attempts = 0,
+			CreatedAt = DateTime.UtcNow
+		};
+
+		bool saved = await _outboxRepository.AddMessageAsync(outboxMessage);
+		
+		if (!saved)
+		{
+			_logger.LogError("Failed to save outbox message for page index {PageId}", pageId);
+		}
+	}
+
+	private async Task EnqueueDeleteAsync(Guid pageId)
+	{
+		OutboxMessageDatabase outboxMessage = new OutboxMessageDatabase
+		{
+			Id = Guid.NewGuid(),
+			Type = OutboxMessageTypes.PageDelete,
+			Payload = JsonSerializer.Serialize(new PageDeleteOutboxPayload { PageId = pageId }),
+			Status = OutboxMessageStatus.Pending,
+			Attempts = 0,
+			CreatedAt = DateTime.UtcNow
+		};
+
+		bool saved = await _outboxRepository.AddMessageAsync(outboxMessage);
+		if (!saved)
+		{
+			_logger.LogError("Failed to save outbox message for page delete {PageId}", pageId);
+		}
 	}
 }

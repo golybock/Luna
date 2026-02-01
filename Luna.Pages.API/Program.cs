@@ -4,12 +4,14 @@ using Luna.Pages.Repositories.Repositories.Page.Command;
 using Luna.Pages.Repositories.Repositories.Page.Query;
 using Luna.Pages.Repositories.Repositories.PageVersion.Command;
 using Luna.Pages.Repositories.Repositories.PageVersion.Query;
+using Luna.Pages.Repositories.Repositories.OutboxRepository;
 using Luna.Pages.Repositories.Repositories.Search.Command;
 using Luna.Pages.Repositories.Repositories.Search.Query;
 using Luna.Pages.Repositories.Repositories.Session;
 using Luna.Pages.Repositories.Repositories.WorkspaceUsers;
 using Luna.Pages.Repositories.WorkspacePermissionRepository;
 using Luna.Pages.Services.PermissionEventHandler;
+using Luna.Pages.Services.Services.OutboxPublisherService;
 using Luna.Pages.Services.Services.PageService;
 using Luna.Pages.Services.Services.WorkspacePermissionService;
 using Luna.Tools.Database.Npgsql.Options;
@@ -53,6 +55,7 @@ builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(bui
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 builder.Services.Configure<ElasticSearchSettings>(builder.Configuration.GetSection("ElasticSearch"));
 builder.Services.AddHostedService<PermissionEventConsumerService>();
+builder.Services.AddHostedService<OutboxPublisherService>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<PageService>());
 
@@ -76,6 +79,7 @@ builder.Services.AddSingleton<IElasticClient>(sp =>
 
 builder.Services.AddScoped<IPageSearchCommandRepository, PageSearchCommandRepository>();
 builder.Services.AddScoped<IPageSearchQueryRepository, PageSearchQueryRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 
 builder.Services.AddSingleton<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddSingleton<ISessionCacheRepository, SessionCacheRepository>(provider => new SessionCacheRepository(builder.Configuration.GetConnectionString("redis")));

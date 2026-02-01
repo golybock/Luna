@@ -22,6 +22,8 @@ public class IndexPageCommandHandler : IRequestHandler<IndexPageCommand, bool>
 	{
 		PageSearchDocument searchDocumentPage = (request.PageVersion ?? new PageVersionDomain())
 			.ToSearchDocument(request.PageDomain);
+		
+		_logger.LogInformation("Index page {PageId}",  searchDocumentPage.PageId);
 
 		return await _pageSearchCommandRepository.IndexPageAsync(searchDocumentPage, cancellationToken);
 	}

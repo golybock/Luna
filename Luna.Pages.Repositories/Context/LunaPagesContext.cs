@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using Luna.Pages.Models.Database.WorkspaceUser;
+﻿using Luna.Pages.Models.Database.WorkspaceUser;
+using Luna.Tools.SharedModels.Models.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace Luna.Pages.Repositories.Context;
@@ -17,6 +16,7 @@ public partial class LunaPagesContext : DbContext
     }
 
     public virtual DbSet<WorkspaceUserDatabase> WorkspaceUsers { get; set; }
+	public virtual DbSet<OutboxMessageDatabase> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +45,36 @@ public partial class LunaPagesContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.WorkspaceId).HasColumnName("workspace_id");
         });
+
+		modelBuilder.Entity<OutboxMessageDatabase>(entity =>
+		{
+			entity.ToTable("outbox_messages");
+
+			entity.HasKey(e => e.Id).HasName("outbox_messages_pkey");
+
+			entity.Property(e => e.Id)
+				.ValueGeneratedNever()
+				.HasColumnName("id");
+			entity.Property(e => e.Type)
+				.HasColumnName("type");
+			entity.Property(e => e.Payload)
+				.HasColumnType("jsonb")
+				.HasColumnName("payload");
+			entity.Property(e => e.Status)
+				.HasColumnName("status");
+			entity.Property(e => e.Attempts)
+				.HasDefaultValueSql("0")
+				.HasColumnName("attempts");
+			entity.Property(e => e.CreatedAt)
+				.HasDefaultValueSql("now()")
+				.HasColumnName("created_at");
+			entity.Property(e => e.ProcessedAt)
+				.HasColumnName("processed_at");
+			entity.Property(e => e.LastError)
+				.HasColumnName("last_error");
+			entity.Property(e => e.LockedUntil)
+				.HasColumnName("locked_until");
+		});
 
         OnModelCreatingPartial(modelBuilder);
     }
