@@ -1,6 +1,6 @@
 ﻿import { HttpProviderBase } from "./httpProviderBase";
-import IUserView from "@/types/auth/IUserView";
-import { IWorkspaceUserBlank } from "@/types/workspace/IWorkspaceUserBlank";
+import UserView from "@/models/auth/UserView";
+import { WorkspaceUserBlank } from "@/models/workspace/WorkspaceUserBlank";
 
 class UserHttpProvider extends HttpProviderBase {
 
@@ -8,11 +8,11 @@ class UserHttpProvider extends HttpProviderBase {
 		super()
 	}
 
-	async getUser(userId: string): Promise<IUserView | null> {
-		return this.get<IUserView | null>(`/user/getUser?userId=${userId}`);
+	async getUser(userId: string): Promise<UserView | null> {
+		return this.get<UserView | null>(`/user/getUser?userId=${userId}`);
 	}
 
-	async getUsers(userIds: string[]): Promise<IUserView[]> {
+	async getUsers(userIds: string[]): Promise<UserView[]> {
 
 		let url = `/user/getUsers?`;
 
@@ -22,10 +22,10 @@ class UserHttpProvider extends HttpProviderBase {
 
 		url = url.slice(0, -1);
 
-		return this.get<IUserView[]>(url);
+		return this.get<UserView[]>(url);
 	}
 
-	async updateUser(userBlank: IWorkspaceUserBlank) {
+	async updateUser(userBlank: WorkspaceUserBlank) {
 		return this.post(`/user/updateUser`, userBlank);
 	}
 }

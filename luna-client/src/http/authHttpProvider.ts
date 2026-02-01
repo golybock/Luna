@@ -1,5 +1,5 @@
-import { IAuthView } from "@/types/auth/IAuthView";
 import { HttpProviderBase } from "./httpProviderBase";
+import { AuthView } from "@/models/auth/AuthView";
 
 class AuthHttpProvider extends HttpProviderBase {
 
@@ -11,8 +11,8 @@ class AuthHttpProvider extends HttpProviderBase {
 		return this.post('/auth/requestverificationcode', { email: email });
 	}
 
-	async signIn(email: string, code: string): Promise<IAuthView> {
-		return this.post<IAuthView>('/auth/signin', { email: email, code: code });
+	async signIn(email: string, code: string): Promise<AuthView> {
+		return this.post<AuthView>('/auth/signin', { email: email, code: code });
 	}
 
 	async loginGoogle(): Promise<void> {
@@ -23,9 +23,9 @@ class AuthHttpProvider extends HttpProviderBase {
 		return this.post('/auth/logout');
 	}
 
-	async checkAuth(): Promise<IAuthView | null> {
+	async checkAuth(): Promise<AuthView | null> {
 		try {
-			return await this.get<IAuthView>('/auth/validate');
+			return await this.get<AuthView>('/auth/validate');
 		} catch {
 			return null;
 		}
