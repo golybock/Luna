@@ -62,6 +62,7 @@ public class BackgroundAuthCodeService : BackgroundService
 				}
 				else
 				{
+					// todo переделать на logger
 					Console.WriteLine("AuthCodeEmail could not be deserialized.");
 				}
 
@@ -70,6 +71,7 @@ public class BackgroundAuthCodeService : BackgroundService
 			}
 			catch (Exception ex)
 			{
+				// todo переделать на logger
 				Console.WriteLine(ex);
 				await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false,
 					cancellationToken: stoppingToken);

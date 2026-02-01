@@ -37,6 +37,7 @@ public class EmailService : IEmailService
 	{
 		try
 		{
+			// todo переделать на logger
 			Console.WriteLine($"Attempting to send email via {_emailSettings.SmtpHost}:{_emailSettings.SmtpPort}");
 			Console.WriteLine($"SSL Enabled: {_emailSettings.EnableSsl}");
 			Console.WriteLine($"From: {_emailSettings.SenderEmail}:{_emailSettings.SenderPassword}");
@@ -70,6 +71,7 @@ public class EmailService : IEmailService
 				message.AlternateViews.Add(plainView);
 			}
 
+			// todo переделать на logger
 			Console.WriteLine("Sending email...");
 			await client.SendMailAsync(message);
 			Console.WriteLine("Email sent");
@@ -77,6 +79,7 @@ public class EmailService : IEmailService
 		}
 		catch (SmtpException smtpEx)
 		{
+			// todo переделать на logger
 			Console.WriteLine($"SMTP Error: {smtpEx.Message}");
 			Console.WriteLine($"Status Code: {smtpEx.StatusCode}");
 			Console.WriteLine($"Full Exception: {smtpEx}");
