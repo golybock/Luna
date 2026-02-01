@@ -1,6 +1,39 @@
-﻿.container {
+﻿@import "src/styles/variables";
+
+.modalContainer {
+	width: min(90vw, 840px);
+	max-height: 80vh;
+
+	@media screen and (max-width: $desktop-width) {
+		width: 100%;
+		max-height: 90vh;
+	}
+}
+
+.container {
 	display: flex;
 	width: 100%;
 	flex-direction: column;
 	box-sizing: border-box;
+	gap: 16px;
+	color: var(--text);
+	font-family: "Noto Sans", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+	max-height: 80vh;
+	overflow: auto;
+	padding-right: 4px;
+
+	@media screen and (max-width: $desktop-width) {
+		max-height: 90vh;
+	}
+}
+
+.header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	p {
+		color: var(--gray);
+		font-size: 14px;
+	}
 }

@@ -17,18 +17,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ closeModal }) => {
 	}
 
 	return (
-		<Modal closeModal={closeModal}>
+		<Modal closeModal={closeModal} containerClassName={styles.modalContainer}>
 			<div className={styles.container}>
-				<h3>Settings</h3>
+				<div className={styles.header}>
+					<h3>Settings</h3>
+					<p>Manage your profile and workspace preferences.</p>
+				</div>
 				<Tabs defaultActiveTab={0}>
 					<Tab title="Profile">
 						<ProfilePage/>
 					</Tab>
 					<Tab title="Workspace">
 						<WorkspaceSettings/>
-					</Tab>
-					<Tab title="User settings">
-						user settings
 					</Tab>
 				</Tabs>
 			</div>
