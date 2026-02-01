@@ -9,7 +9,7 @@ public class SessionCacheRepository : ISessionCacheRepository
 {
 	private readonly IDatabase _redisDatabase;
 
-	private static string PageUsersKey(string pageId, string userId) => $"page_users:{pageId}-{userId}";
+	private static string PageUsersKey(string pageId) => $"page_users:{pageId}";
 	private static string PageCursorsKey(string pageId) => $"page_cursors:{pageId}";
 	private static string ConnectionPageKey(string connectionId) => $"connection_page:{connectionId}";
 
@@ -35,46 +35,50 @@ public class SessionCacheRepository : ISessionCacheRepository
 		return _redisDatabase.KeyDeleteAsync(ConnectionPageKey(connectionId));
 	}
 
-
 	public async Task AddUserToPageAsync(string pageId, string userId, UserDomain? userDomain)
 	{
-		UserDomain userData = userDomain ?? new UserDomain() {Id = Guid.Parse(userId)};
-
-		await _redisDatabase.SetAddAsync(PageUsersKey(pageId, userId), JsonSerializer.Serialize(userData));
+		UserDomain userData = userDomain ?? new UserDomain() { Id = Guid.Parse(userId) };
+    
+		await _redisDatabase.HashSetAsync(
+			PageUsersKey(pageId), 
+			userId, 
+			JsonSerializer.Serialize(userData)
+		);
 	}
+
 
 	public async Task<IEnumerable<UserDomain>> GetPageUsersAsync(string pageId)
 	{
-		HashEntry[] entries = await _redisDatabase.HashGetAllAsync(PageUsersKey(pageId, "*"));
-
+		HashEntry[] entries = await _redisDatabase.HashGetAllAsync(PageUsersKey(pageId));
+    
 		List<UserDomain> users = new List<UserDomain>();
-
+    
 		foreach (HashEntry entry in entries)
 		{
 			if (entry.Value.IsNullOrEmpty) continue;
-
+        
 			UserDomain? user = JsonSerializer.Deserialize<UserDomain>(entry.Value!);
-
+        
 			if (user != null) users.Add(user);
 		}
-
+    
 		return users;
 	}
 
 	public async Task<UserDomain?> GetPageUserByIdAsync(string pageId, string userId)
 	{
-		HashEntry[] user = await _redisDatabase.HashGetAllAsync(PageUsersKey(pageId, userId));
-
-		return user.Length > 0 ? JsonSerializer.Deserialize<UserDomain>(user[0].ToString()) : null;
+		RedisValue value = await _redisDatabase.HashGetAsync(PageUsersKey(pageId), userId);
+    
+		return value.HasValue ? JsonSerializer.Deserialize<UserDomain>(value!) : null;
 	}
 
 	public async Task RemoveUserFromPageAsync(string pageId, string userId)
 	{
-		string key = PageUsersKey(pageId, userId);
-
-		await _redisDatabase.SetRemoveAsync(key, userId);
-
-		if (await _redisDatabase.SetLengthAsync(key) == 0)
+		string key = PageUsersKey(pageId);
+    
+		await _redisDatabase.HashDeleteAsync(key, userId);
+    
+		if (await _redisDatabase.HashLengthAsync(key) == 0)
 		{
 			await _redisDatabase.KeyDeleteAsync(key);
 		}
