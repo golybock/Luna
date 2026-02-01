@@ -11,6 +11,10 @@
 	align-items: center;
 	background-color: rgba(0, 0, 0, 0.5);
 	z-index: var(--modal-overlay-z-index);
+
+	@media screen and (max-width: $desktop-width) {
+		align-items: flex-end;
+	}
 }
 
 .container {
@@ -31,12 +35,20 @@
 	//padding-bottom: var(--modal-container-padding-bottom);
 
 	@media screen and (max-width: $desktop-width) {
+		position: fixed;
+		left: 0;
+		right: 0;
 		bottom: var(--modal-container-bottom);
+		max-width: 100%;
+		width: 100%;
+		height: auto;
+		min-height: 40vh;
 		padding-top: var(--modal-container-padding-top);
+		padding-bottom: 24px;
 		border-radius: var(--modal-container-border-radius);
 		overflow: hidden;
 		box-sizing: border-box;
-		justify-content: flex-end;
+		justify-content: flex-start;
 	}
 }
 

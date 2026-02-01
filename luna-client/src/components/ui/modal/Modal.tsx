@@ -1,4 +1,4 @@
-import React, {useMemo, useRef, useState} from "react";
+import React, { useRef, useState} from "react";
 import styles from "./Modal.module.scss";
 import Swiper from "@/components/ui/modal/swiper/Swiper";
 import Image from "next/image";
@@ -17,7 +17,6 @@ const Modal: React.FC<ModalProps> = ({
 	children,
 	overlayClassName,
 	containerClassName,
-	crossClassName,
 	showSwiper = true,
 	showCloseButton = true,
 	closeModal,

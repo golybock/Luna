@@ -9,6 +9,7 @@ interface TabProps{
 export const Tab : React.FC<TabProps> = ({title, children}) => {
 	return(
 		<div className={styles.tabPane}>
+			<h2>{title}</h2>
 			{children}
 		</div>
 	)
