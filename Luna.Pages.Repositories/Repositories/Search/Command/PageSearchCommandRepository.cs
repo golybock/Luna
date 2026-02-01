@@ -70,6 +70,7 @@ public class PageSearchCommandRepository : PageSearchRepositoryBase, IPageSearch
 				.Properties(p => p
 					.Text(t => t.Name(n => n.Title).Analyzer("standard"))
 					.Text(t => t.Name(n => n.Description).Analyzer("standard"))
+					.Text(t => t.Name(n => n.Content).Analyzer("standard"))
 					.Keyword(k => k.Name(n => n.PageId))
 					.Keyword(k => k.Name(n => n.WorkspaceId))
 					.Nested<PageBlockSearchContent>(n => n

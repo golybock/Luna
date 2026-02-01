@@ -28,6 +28,7 @@ public class PageSearchQueryRepository : PageSearchRepositoryBase, IPageSearchQu
 								.Fields(f => f
 									.Field("title", boost: 3)
 									.Field("description", boost: 2)
+									.Field("content", boost: 1)
 								)
 								.Type(TextQueryType.BestFields)
 								.Fuzziness(Fuzziness.Auto)
@@ -93,6 +94,7 @@ public class PageSearchQueryRepository : PageSearchRepositoryBase, IPageSearchQu
 		}
 
 		List<PageBlockSearchContent> results = new List<PageBlockSearchContent>();
+		HashSet<string> seen = new HashSet<string>();
 
 		foreach (IHit<PageSearchDocument>? hit in searchResponse.Hits)
 		{
@@ -103,6 +105,24 @@ public class PageSearchQueryRepository : PageSearchRepositoryBase, IPageSearchQu
 					PageBlockSearchContent? block = innerHit.Source.As<PageBlockSearchContent>();
 
 					if (block != null)
+					{
+						string key = $"{block.PageId}:{block.BlockId}";
+						if (seen.Add(key))
+						{
+							results.Add(block);
+						}
+					}
+				}
+			}
+			else if (hit.Source?.Blocks != null)
+			{
+				foreach (PageBlockSearchContent block in hit.Source.Blocks)
+				{
+					if (string.IsNullOrWhiteSpace(block.Content)) continue;
+					if (!block.Content.Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
+
+					string key = $"{block.PageId}:{block.BlockId}";
+					if (seen.Add(key))
 					{
 						results.Add(block);
 					}
