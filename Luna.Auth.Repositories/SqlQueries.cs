@@ -24,7 +24,6 @@ public class SqlQueries
 	{
 		public const string GetById = "AuthRepository.GetAuthUserById.sql";
 		public const string GetByEmail = "AuthRepository.GetAuthUserByEmail.sql";
-		public const string GetByEmailAndPassword = "AuthRepository.GetAuthUserByEmailAndPassword.sql";
 		public const string GetByEmailToken = "AuthRepository.GetAuthUserByEmailToken.sql";
 		public const string GetByResetToken = "AuthRepository.GetAuthUserByResetToken.sql";
 		public const string Create = "AuthRepository.CreateAuthUser.sql";
@@ -39,6 +38,14 @@ public class SqlQueries
 		public const string GetByUserId = "SessionArchiveRepository.GetSessionByUserId.sql";
 		public const string DeleteSession = "SessionArchiveRepository.DeleteSession.sql";
 		public const string DeleteSessions = "SessionArchiveRepository.DeleteSessions.sql";
+	}
 
+	public static class OutboxRepository
+	{
+		public const string Create = "OutboxRepository.CreateOutboxMessage.sql";
+		public const string AcquirePending = "OutboxRepository.AcquirePendingMessages.sql";
+		public const string MarkProcessed = "OutboxRepository.MarkProcessed.sql";
+		public const string MarkForRetry = "OutboxRepository.MarkForRetry.sql";
+		public const string MarkFailed = "OutboxRepository.MarkFailed.sql";
 	}
 }

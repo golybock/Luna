@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Luna.Auth.Services.Middleware;
 
@@ -52,29 +53,30 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 
 			return AuthenticateResult.Success(ticket);
 		}
-		catch (System.Exception ex)
+		catch (InvalidOperationException ex) when (ex.InnerException is SecurityTokenExpiredException)
 		{
-			Logger.LogInformation("Срок действия access токена истек, попытка обновления через refresh токен");
+			Logger.LogDebug("Access token expired, trying refresh token flow");
 
-			// Если access токен просрочен, пробуем обновить его через refresh токен
 			try
 			{
+				// Валидируем подпись/issuer/audience без срока действия
 				JwtSecurityToken expiredJwtToken = _tokensService.ValidateJwt(accessToken, false);
 
 				string userId = GetClaimValue(expiredJwtToken, ClaimTypes.NameIdentifier);
 				string sessionId = GetClaimValue(expiredJwtToken, "sessionIdentifier");
 				string email = GetClaimValue(expiredJwtToken, ClaimTypes.Email);
-				string userView = GetClaimValue(expiredJwtToken, ClaimTypes.UserData);
 
-				if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(email))
+				if (!Guid.TryParse(userId, out Guid userGuid) ||
+				    !Guid.TryParse(sessionId, out Guid sessionGuid) ||
+				    string.IsNullOrEmpty(email))
 				{
 					ClearTokenCookies();
 					return AuthenticateResult.Fail("Недействительные данные в токене");
 				}
 
 				SessionDatabase? session = await _sessionRepository.GetSessionAsync(
-					Guid.Parse(userId),
-					Guid.Parse(sessionId)
+					userGuid,
+					sessionGuid
 				);
 
 				if (session == null || session.RefreshToken != refreshToken)
@@ -85,10 +87,9 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 
 				List<Claim> newClaims =
 				[
-					new Claim(ClaimTypes.NameIdentifier, userId),
+					new Claim(ClaimTypes.NameIdentifier, userGuid.ToString()),
 					new Claim(ClaimTypes.Email, email),
-					new Claim("sessionIdentifier", sessionId),
-					new Claim(ClaimTypes.UserData, userView)
+					new Claim("sessionIdentifier", sessionGuid.ToString())
 				];
 
 				string newAccessToken = _tokensService.GenerateAccessToken(newClaims);
@@ -98,10 +99,10 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 				session.RefreshToken = newRefreshToken;
 
 				await _sessionRepository.SetSessionAsync(
-					Guid.Parse(userId),
-					Guid.Parse(sessionId),
+					userGuid,
+					sessionGuid,
 					session,
-					TimeSpan.FromDays(_jwtOptions.ValidInDays)
+					TimeSpan.FromDays(_jwtOptions.RefreshValidInDays)
 				);
 
 				// Устанавливаем новые токены в куки
@@ -120,6 +121,12 @@ public class TokenAuthenticationHandler : AuthenticationHandler<JwtAuthOptions>
 				ClearTokenCookies();
 				return AuthenticateResult.Fail("Ошибка аутентификации: " + refreshEx.Message);
 			}
+		}
+		catch (Exception ex)
+		{
+			Logger.LogWarning(ex, "Invalid access token");
+			ClearTokenCookies();
+			return AuthenticateResult.Fail("Invalid access token");
 		}
 	}
 

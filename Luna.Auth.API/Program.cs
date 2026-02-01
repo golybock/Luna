@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Luna.Auth.Repositories.Repositories.AuthRepository;
+using Luna.Auth.Repositories.Repositories.OutboxRepository;
 using Luna.Auth.Repositories.Repositories.SessionArchiveRepository;
 using Luna.Auth.Repositories.Repositories.SessionRepository;
 using Luna.Auth.Repositories.Repositories.VerificationCodeRepository;
@@ -7,6 +8,7 @@ using Luna.Auth.Services.Middleware;
 using Luna.Auth.Services.Services.AccountManagementService;
 using Luna.Auth.Services.Services.AuthService;
 using Luna.Auth.Services.Services.EmailService;
+using Luna.Auth.Services.Services.OutboxPublisherService;
 using Luna.Auth.Services.Services.SessionManagementService;
 using Luna.Auth.Services.Services.TokensService;
 using Luna.Tools.Database.Npgsql.Options;
@@ -86,6 +88,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<ISessionArchiveRepository, SessionArchiveRepository>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>(provider => new SessionRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>(provider => new VerificationCodeRepository(builder.Configuration.GetConnectionString("redis")));
@@ -96,6 +99,8 @@ builder.Services.AddScoped<ISessionManagementService, SessionManagementService>(
 builder.Services.AddScoped<ITokensService, TokensService>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddHostedService<OutboxPublisherService>();
 
 builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
 

@@ -1,31 +1,34 @@
 ﻿using System.Security.Claims;
+using System.Text.Json;
 using Luna.Auth.Models.Blank.Models;
 using Luna.Auth.Models.Database.Models;
 using Luna.Auth.Models.Domain.Models;
 using Luna.Auth.Repositories.Repositories.AuthRepository;
+using Luna.Auth.Repositories.Repositories.OutboxRepository;
 using Luna.Auth.Repositories.Repositories.SessionArchiveRepository;
 using Luna.Auth.Repositories.Repositories.SessionRepository;
 using Luna.Auth.Repositories.Repositories.VerificationCodeRepository;
 using Luna.Auth.Services.Extensions;
-using Luna.Auth.Services.Services.EmailService;
 using Luna.Auth.Services.Services.TokensService;
 using Luna.Tools.SharedModels.Models.Email;
+using Luna.Tools.SharedModels.Models.Outbox;
 using Luna.Tools.Web;
 using Luna.Users.gRPC.Client.Services;
 using Luna.Users.Models.Blank.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace Luna.Auth.Services.Services.AuthService;
 
 public class AuthService : IAuthService
 {
-	private readonly TimeSpan _verificationCodeLifetime = TimeSpan.FromMinutes(1);
+	private readonly TimeSpan _verificationCodeLifetime;
 
 	private readonly IAuthRepository _authRepository;
 	private readonly ISessionRepository _sessionRepository;
 	private readonly ISessionArchiveRepository _sessionArchiveRepository;
 	private readonly IVerificationCodeRepository _verificationCodeRepository;
 	private readonly ITokensService _tokensService;
-	private readonly IEmailService _emailService;
+	private readonly IOutboxRepository _outboxRepository;
 	private readonly JwtOptions _jwtOptions;
 	private readonly IUserServiceClient _userServiceClient;
 
@@ -37,9 +40,10 @@ public class AuthService : IAuthService
 		ITokensService tokensService,
 		JwtOptions jwtOptions,
 		IUserServiceClient userServiceClient,
-		IEmailService emailService,
-		IVerificationCodeRepository verificationCodeRepository
-		)
+		IOutboxRepository outboxRepository,
+		IVerificationCodeRepository verificationCodeRepository,
+		IConfiguration configuration
+	)
 	{
 		_authRepository = authRepository;
 		_sessionRepository = sessionRepository;
@@ -47,13 +51,21 @@ public class AuthService : IAuthService
 		_tokensService = tokensService;
 		_jwtOptions = jwtOptions;
 		_userServiceClient = userServiceClient;
-		_emailService = emailService;
+		_outboxRepository = outboxRepository;
 		_verificationCodeRepository = verificationCodeRepository;
+		int lifetimeMinutes = configuration.GetValue("Auth:VerificationCodeLifetimeMinutes", 1);
+		_verificationCodeLifetime = TimeSpan.FromMinutes(Math.Max(1, lifetimeMinutes));
 	}
 
 	public async Task RequestVerificationCodeAsync(SignInBlank signInBlank)
 	{
-		VerificationCodeDatabase? verificationCodeDatabase = await _verificationCodeRepository.GetVerificationCodeAsync(signInBlank.Email);
+		if (IsVerificationCodeIgnored())
+		{
+			return;
+		}
+
+		VerificationCodeDatabase? verificationCodeDatabase =
+			await _verificationCodeRepository.GetVerificationCodeAsync(signInBlank.Email);
 
 		if (verificationCodeDatabase != null)
 		{
@@ -78,25 +90,45 @@ public class AuthService : IAuthService
 		};
 
 		// todo вынести время жизни
-		await _verificationCodeRepository.CreateVerificationCodeAsync(signInBlank.Email, verificationCode, _verificationCodeLifetime);
-		await _emailService.SendAuthCodeAsync(authCodeEmail);
+		await _verificationCodeRepository.CreateVerificationCodeAsync(signInBlank.Email, verificationCode,
+			_verificationCodeLifetime);
+
+		OutboxMessageDatabase outboxMessage = new OutboxMessageDatabase()
+		{
+			Id = Guid.NewGuid(),
+			Type = OutboxMessageTypes.AuthCodeEmail,
+			Payload = JsonSerializer.Serialize(authCodeEmail),
+			Status = OutboxMessageStatus.Pending,
+			Attempts = 0,
+			CreatedAt = DateTime.UtcNow
+		};
+
+		bool saved = await _outboxRepository.AddMessageAsync(outboxMessage);
+		if (!saved)
+		{
+			throw new Exception("Failed to save outbox message");
+		}
 	}
 
 	public async Task<AuthDomain> SignInAsync(SignInCodeBlank signInCodeBlank)
 	{
-		VerificationCodeDatabase? code = await _verificationCodeRepository.GetVerificationCodeAsync(signInCodeBlank.Email);
-
-		if (code == null || code.Code != signInCodeBlank.Code)
+		if (!IsVerificationCodeIgnored())
 		{
-			throw new UnauthorizedAccessException("Invalid code");
-		}
+			VerificationCodeDatabase? code =
+				await _verificationCodeRepository.GetVerificationCodeAsync(signInCodeBlank.Email);
 
-		if (DateTime.UtcNow - code.CreatedAt > _verificationCodeLifetime)
-		{
-			throw new UnauthorizedAccessException("Code lifetime expired");
-		}
+			if (code == null || code.Code != signInCodeBlank.Code)
+			{
+				throw new UnauthorizedAccessException("Invalid code");
+			}
 
-		await _verificationCodeRepository.DeleteVerificationCodeAsync(signInCodeBlank.Email);
+			if (DateTime.UtcNow - code.CreatedAt > _verificationCodeLifetime)
+			{
+				throw new UnauthorizedAccessException("Code lifetime expired");
+			}
+
+			await _verificationCodeRepository.DeleteVerificationCodeAsync(signInCodeBlank.Email);
+		}
 
 		AuthUserDomain newUser;
 		AuthUserDatabase? user = await _authRepository.GetAuthUserAsync(signInCodeBlank.Email);
@@ -272,5 +304,11 @@ public class AuthService : IAuthService
 		}
 
 		return new string(chars);
+	}
+
+	private static bool IsVerificationCodeIgnored()
+	{
+		string? value = Environment.GetEnvironmentVariable("IGNORE_VERIFICATION_CODE");
+		return bool.TryParse(value, out bool result) && result;
 	}
 }

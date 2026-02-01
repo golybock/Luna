@@ -33,6 +33,11 @@ public class AuthController : ControllerBase
 	[HttpPost("[action]")]
 	public async Task<ActionResult> RequestVerificationCodeAsync(SignInBlank signInBlank)
 	{
+		if (IsVerificationCodeIgnored())
+		{
+			return Ok();
+		}
+
 		await _authService.RequestVerificationCodeAsync(signInBlank);
 		return Ok();
 	}
@@ -106,10 +111,6 @@ public class AuthController : ControllerBase
 		{
 			await _authService.LogoutAsync(UserId!.Value, SessionId!.Value);
 		}
-		catch (Exception e)
-		{
-			Console.WriteLine(e);
-		}
 		finally
 		{
 			HttpContext.Response.Cookies.Delete("access_token");
@@ -151,5 +152,11 @@ public class AuthController : ControllerBase
 
 		context.Response.Cookies.Append("access_token", accessToken, accessTokenOptions);
 		context.Response.Cookies.Append("refresh_token", refreshToken, refreshTokenOptions);
+	}
+
+	private static bool IsVerificationCodeIgnored()
+	{
+		string? value = Environment.GetEnvironmentVariable("IGNORE_VERIFICATION_CODE");
+		return bool.TryParse(value, out bool result) && result;
 	}
 }
