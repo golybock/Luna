@@ -5,9 +5,9 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
-	padding: 40px;
-	gap: 16px;
+	justify-content: flex-start;
+	padding: 48px 32px;
+	gap: 24px;
 	width: 100%;
 	box-sizing: border-box;
 }
@@ -15,18 +15,33 @@
 .content{
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 16px;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 20px;
 	width: 100%;
-	max-width: 640px;
+	max-width: 960px;
+}
+
+.header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	h3 {
+		color: var(--text);
+	}
+
+	p {
+		color: var(--gray);
+		font-size: 14px;
+	}
 }
 
 .contentContainer{
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	gap: 8px;
+	gap: 12px;
 }
 
 .pagesCarousel{
@@ -45,10 +60,6 @@
 	align-items: center;
 }
 
-
-
-
-
 .searchButton{
 	border-radius: 50% !important;
 	width: 32px !important;
@@ -56,7 +67,69 @@
 	align-self: flex-end;
 
 	img{
-		width: 24px !important;
-		height: 24px !important;
+		width: 20px !important;
+		height: 20px !important;
 	}
+}
+
+.sectionTitle {
+	font-size: 14px;
+	color: var(--gray);
+}
+
+.searchCard {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: var(--secondary-container);
+	border: 1px solid var(--teriary-container);
+}
+
+.searchInputWrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.emptyCard {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	padding: 40px;
+	min-height: 260px;
+	background: var(--secondary-container);
+	border: 1px dashed var(--gray);
+	text-align: center;
+}
+
+.emptyIcon {
+	width: 44px;
+	height: 44px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--teriary-container);
+	border: 1px solid var(--gray);
+}
+
+.emptyText {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	h4 {
+		color: var(--text);
+	}
+
+	p {
+		color: var(--gray);
+		font-size: 14px;
+	}
+}
+
+.emptyButton {
+	width: 100%;
+	max-width: 200px;
 }
