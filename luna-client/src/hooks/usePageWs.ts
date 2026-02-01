@@ -349,11 +349,7 @@ export function usePageWs(
 							return payload.document;
 						});
 					}),
-
-					provider.onUserJoinedPage((payload: { userId: string; pageId: string }) => {
-						setStatus(Statuses.UserJoined);
-					}),
-
+					
 					provider.onUsersSet((payload: UserView[]) => {
 						setUsers(payload);
 						setStatus(Statuses.UserLeft);
@@ -369,7 +365,6 @@ export function usePageWs(
 
 					provider.onCursorSet((payload: UserCursorView[]) => {
 						setCursors(payload)
-						console.log(payload)
 					}),
 				];
 
@@ -420,7 +415,7 @@ export function usePageWs(
 			window.document.removeEventListener('visibilitychange', handleVisibilityChange);
 			cleanup();
 		};
-	}, [pageId, autoConnect, autoFetchData, hasDocChanged]);
+	}, [pageId, autoConnect, autoFetchData, hasDocChanged, docSignature]);
 
 	return {
 		page,
