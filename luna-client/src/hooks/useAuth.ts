@@ -12,7 +12,7 @@ import {
 
 export const useAuth = () => {
 	const dispatch = useDispatch<AppDispatch>();
-	const { isAuthenticated, user, isLoading, codeRequested, codeRequestAt } = useSelector((state: TypeRootState) => state.auth);
+	const { isAuthenticated, user, isLoading, codeRequested, codeRequestAt, requestedEmail } = useSelector((state: TypeRootState) => state.auth);
 
 	const checkAuth = useCallback(() => {
 		dispatch(checkAuthentication());
@@ -56,6 +56,7 @@ export const useAuth = () => {
 		user,
 		isLoading,
 		codeRequested,
+		requestedEmail,
 		codeRequestAt,
 		checkAuth,
 		requestCode,
