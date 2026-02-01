@@ -22,6 +22,7 @@ interface EditorProps {
 	scrollToBlockId?: string | null;
 	cursors?: UserCursorView[];
 	onCursorChange?: (blockId: string, position: number) => void;
+	className?: string;
 }
 
 const makeId = () => {
@@ -75,9 +76,11 @@ export const TiptapEditor: React.FC<EditorProps> = ({
 	onChange,
 	scrollToBlockId,
 	cursors,
-	onCursorChange
+	onCursorChange,
+	className
 }) => {
-
+	const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null);
+	
 	const currentContent = useMemo(() => {
 		return ensureDoc(data.document);
 	}, [data.document]);
@@ -86,15 +89,23 @@ export const TiptapEditor: React.FC<EditorProps> = ({
 		const json = ensureDoc(content);
 		onChange(json as TiptapDoc);
 	};
+	
+	if(scrollToBlockId){
+		console.log(scrollToBlockId);	
+	}
 
 	return (
-		<div>
+		<div ref={setEditorElement} style={{ position: "relative" }}>
 			<NotionLikeEditor
 				content={currentContent}
 				onChange={handleChange}
+				onCursorChange={onCursorChange}
 				editable={true}
+				className={className}
 			/>
-			{/*<CursorOverlay cursors={cursors}/>*/}
+			{editorElement && cursors && (
+				<CursorOverlay cursors={cursors} editorElement={editorElement}/>	
+			)}
 		</div>
 	);
 };

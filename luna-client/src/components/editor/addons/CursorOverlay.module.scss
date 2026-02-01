@@ -4,7 +4,7 @@
 	height: 24px;
 	border-left: 2px solid;
 	pointer-events: none;
-	z-index: 1000;
+	z-index: 100000;
 	opacity: 0.6;
 	transition: left 0.15s ease-out, top 0.15s ease-out;
 }
@@ -32,6 +32,6 @@
 		height: 0;
 		border-left: 4px solid transparent;
 		border-right: 4px solid transparent;
-		border-top: 4px solid inherit;
+		border-top: 4px solid transparent;
 	}
 }

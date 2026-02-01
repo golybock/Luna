@@ -11,12 +11,12 @@ interface CursorOverlayProps {
 interface CursorPosition {
 	x: number;
 	y: number;
+	height: number;
 	userName: string;
 	userId: string;
 	color: string;
 }
 
-// Генерируем стабильный цвет для пользователя на основе его ID
 const getUserColor = (userId: string): string => {
 	const colors = [
 		'#FF6B6B',
@@ -41,14 +41,15 @@ const getUserColor = (userId: string): string => {
 
 export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cursors }) => {
 	const [cursorPositions, setCursorPositions] = useState<CursorPosition[]>([]);
-
+	
 	const { user } = useAuth();
 
 	useEffect(() => {
 		const updateCursorPositions = () => {
 			const positions: CursorPosition[] = [];
-
-			// Находим контейнер .ProseMirror внутри editorElement
+			
+			// console.log(editorElement);
+			
 			const proseMirror = editorElement.querySelector('.ProseMirror') as HTMLElement;
 			if (!proseMirror) return;
 
@@ -77,10 +78,15 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 						// Если нет текста, показываем курсор в начале блока
 						const rect = blockElement.getBoundingClientRect();
 						const editorRect = editorElement.getBoundingClientRect();
+						const computedLineHeight = parseFloat(window.getComputedStyle(blockElement).lineHeight || "0");
+						const height = Number.isFinite(computedLineHeight) && computedLineHeight > 0
+							? computedLineHeight
+							: rect.height || 24;
 
 						positions.push({
 							x: rect.left - editorRect.left,
 							y: rect.top - editorRect.top,
+							height,
 							userName: cursor.userDisplayName || 'Unknown',
 							userId: cursor.userId,
 							color: getUserColor(cursor.userId),
@@ -98,10 +104,12 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 					const clientRects = range.getClientRects();
 					const rect = clientRects.length > 0 ? clientRects[clientRects.length - 1] : range.getBoundingClientRect();
 					const editorRect = editorElement.getBoundingClientRect();
+					const height = rect.height || parseFloat(window.getComputedStyle(blockElement).lineHeight || "0") || 24;
 
 					positions.push({
 						x: rect.left - editorRect.left,
 						y: rect.top - editorRect.top,
+						height,
 						userName: cursor.userDisplayName || 'Unknown',
 						userId: cursor.userId,
 						color: getUserColor(cursor.userId),
@@ -115,8 +123,6 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 		};
 
 		const getTextNodeFromBlock = (blockElement: HTMLElement): Text | null => {
-			// В Tiptap блоки рендерятся как <p data-block-id="...">, <h1>, и т.д.
-			// Текст находится прямо внутри этих элементов
 			const findTextNode = (node: Node): Text | null => {
 				if (node.nodeType === Node.TEXT_NODE) {
 					return node as Text;
@@ -162,6 +168,7 @@ export const CursorOverlay: React.FC<CursorOverlayProps> = ({ editorElement, cur
 					style={{
 						left: `${pos.x}px`,
 						top: `${pos.y}px`,
+						height: `${pos.height}px`,
 						borderColor: pos.color,
 					}}
 				>

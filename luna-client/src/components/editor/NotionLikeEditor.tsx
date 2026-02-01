@@ -1,10 +1,6 @@
 ﻿import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useEditor, EditorContent, JSONContent, Editor, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Table } from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
@@ -18,6 +14,8 @@ import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Extension } from "@tiptap/core";
 import Suggestion, { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
+import { PluginKey } from "@tiptap/pm/state";
+import tippy, { Instance as TippyInstance } from "tippy.js";
 import styles from "./NotionLikeEditor.module.scss";
 
 interface NotionLikeEditorProps {
@@ -26,6 +24,7 @@ interface NotionLikeEditorProps {
 	editable?: boolean;
 	placeholder?: string;
 	className?: string;
+	onCursorChange?: (blockId: string, position: number) => void;
 }
 
 // Команды для slash menu
@@ -78,13 +77,6 @@ const commands: CommandItem[] = [
 		description: "Capture a code snippet",
 		icon: "{",
 		command: (editor) => editor.chain().focus().toggleCodeBlock().run(),
-	},
-	{
-		title: "Table",
-		description: "Insert a table",
-		icon: "⊞",
-		command: (editor) =>
-			editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
 	},
 	{
 		title: "Divider",
@@ -147,12 +139,10 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
 						key={index}
 						className={`${styles.commandItem} ${index === selectedIndex ? styles.selected : ""}`}
 						onClick={() => selectItem(index)}
+						title={`${item.title} — ${item.description}`}
+						aria-label={item.title}
 					>
 						<span className={styles.commandIcon}>{item.icon}</span>
-						<div className={styles.commandText}>
-							<div className={styles.commandTitle}>{item.title}</div>
-							<div className={styles.commandDescription}>{item.description}</div>
-						</div>
 					</button>
 				))}
 			</div>
@@ -163,6 +153,8 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
 CommandList.displayName = "CommandList";
 
 // Расширение для slash команд
+const slashCommandsPluginKey = new PluginKey("slashCommands");
+
 const SlashCommands = Extension.create({
 	name: "slashCommands",
 
@@ -170,10 +162,25 @@ const SlashCommands = Extension.create({
 		return {
 			suggestion: {
 				char: "/",
+				pluginKey: slashCommandsPluginKey,
 				startOfLine: false,
+				allow: ({ state, range }) => {
+					const { $from } = state.selection;
+					const parent = $from.parent;
+					const start = $from.start();
+					const offset = Math.max(0, range.from - start);
+					const textBefore = parent.textBetween(0, offset, "\n", "\n");
+					return textBefore.trim().length === 0;
+				},
 				command: ({ editor, range, props }: any) => {
-					props.command({ editor, range });
-					editor.chain().focus().deleteRange(range).run();
+					const { doc } = editor.state;
+					let from = range.from;
+					if (from > 0 && doc.textBetween(from - 1, from, "\n", "\n") === "/") {
+						from -= 1;
+					}
+					editor.chain().focus().deleteRange({ from, to: range.to }).run();
+					props.command(editor);
+					editor.view.dispatch(editor.state.tr.setMeta(slashCommandsPluginKey, { action: "close" }));
 				},
 			} as Partial<SuggestionOptions>,
 		};
@@ -191,16 +198,28 @@ const SlashCommands = Extension.create({
 				},
 				render: () => {
 					let component: ReactRenderer<CommandListRef>;
-					let popup: HTMLElement | null = null;
+					let popup: TippyInstance | null = null;
+					const closePopup = () => {
+						popup?.destroy();
+						popup = null;
+						component?.destroy();
+					};
+					const closeSuggestion = (editor: Editor) => {
+						editor.view.dispatch(editor.state.tr.setMeta(slashCommandsPluginKey, { action: "close" }));
+					};
 
 					return {
 						onStart: (props: SuggestionProps) => {
+							if (!props.items?.length) {
+								return;
+							}
 							component = new ReactRenderer(CommandList, {
 								props: {
 									...props,
 									command: (item: CommandItem) => {
-										item.command(props.editor);
-										props.editor.chain().focus().deleteRange(props.range).run();
+										props.command(item);
+										closePopup();
+										closeSuggestion(props.editor);
 									},
 								},
 								editor: props.editor,
@@ -209,26 +228,28 @@ const SlashCommands = Extension.create({
 							if (!props.clientRect) {
 								return;
 							}
-
-							popup = document.createElement("div");
-							popup.style.position = "absolute";
-							popup.style.zIndex = "1000";
-							document.body.appendChild(popup);
-							popup.appendChild(component.element);
-
-							const rect = props.clientRect();
-							if (rect) {
-								popup.style.top = `${rect.bottom + window.scrollY}px`;
-								popup.style.left = `${rect.left + window.scrollX}px`;
-							}
+							popup = tippy(document.body, {
+								getReferenceClientRect: props.clientRect,
+								appendTo: () => document.body,
+								content: component.element,
+								showOnCreate: true,
+								interactive: true,
+								trigger: "manual",
+								placement: "bottom-start",
+							});
 						},
 
 						onUpdate(props: SuggestionProps) {
+							if (!props.items?.length) {
+								closePopup();
+								return;
+							}
 							component.updateProps({
 								...props,
 								command: (item: CommandItem) => {
-									item.command(props.editor);
-									props.editor.chain().focus().deleteRange(props.range).run();
+									props.command(item);
+									closePopup();
+									closeSuggestion(props.editor);
 								},
 							});
 
@@ -236,18 +257,14 @@ const SlashCommands = Extension.create({
 								return;
 							}
 
-							const rect = props.clientRect();
-							if (rect) {
-								popup.style.top = `${rect.bottom + window.scrollY}px`;
-								popup.style.left = `${rect.left + window.scrollX}px`;
-							}
+							popup.setProps({
+								getReferenceClientRect: props.clientRect,
+							});
 						},
 
 						onKeyDown(props: any) {
 							if (props.event.key === "Escape") {
-								if (popup) {
-									popup.remove();
-								}
+								closePopup();
 								return true;
 							}
 
@@ -255,10 +272,7 @@ const SlashCommands = Extension.create({
 						},
 
 						onExit() {
-							if (popup) {
-								component.destroy();
-								popup.remove();
-							}
+							closePopup();
 						},
 					};
 				},
@@ -267,29 +281,47 @@ const SlashCommands = Extension.create({
 	},
 });
 
+const BlockIdAttributes = Extension.create({
+	name: "blockIdAttributes",
+	addGlobalAttributes() {
+		return [
+			{
+				types: ["paragraph", "heading", "blockquote", "listItem", "codeBlock", "tableCell", "tableHeader"],
+				attributes: {
+					blockId: {
+						default: null,
+						parseHTML: element => element.getAttribute("data-block-id"),
+						renderHTML: attributes => {
+							return attributes.blockId ? { "data-block-id": attributes.blockId } : {};
+						},
+					},
+				},
+			},
+		];
+	},
+});
+
 export const NotionLikeEditor: React.FC<NotionLikeEditorProps> = ({
 	content,
 	onChange,
 	editable = true,
+	onCursorChange,
+	placeholder,
 	className = "",
 }) => {
 	const editorRef = useRef<Editor | null>(null);
 	const isUpdatingRef = useRef(false);
+	const lastCursorRef = useRef<{ blockId: string | null; position: number } | null>(null);
 
 	const editor = useEditor({
 		immediatelyRender: false,
 		extensions: [
+			BlockIdAttributes,
 			StarterKit.configure({
 				heading: {
 					levels: [1, 2, 3, 4, 5, 6],
 				},
 			}),
-			Table.configure({
-				resizable: true,
-			}),
-			TableRow,
-			TableCell,
-			TableHeader,
 			TextAlign.configure({
 				types: ["heading", "paragraph"],
 			}),
@@ -311,13 +343,13 @@ export const NotionLikeEditor: React.FC<NotionLikeEditorProps> = ({
 			Placeholder.configure({
 				placeholder: ({ pos }) => {
 					if (pos === 1) {
-						return "Type '/' for commands or start writing...";
+						return placeholder || "Type '/' for commands or start writing...";
 					}
 
-					return 'Type / for commands';
+					return placeholder || 'Type / for commands';
 				},
 				showOnlyWhenEditable: false,
-				showOnlyCurrent: false,
+				showOnlyCurrent: true,
 			}),
 			SlashCommands
 		],
@@ -367,6 +399,14 @@ export const NotionLikeEditor: React.FC<NotionLikeEditorProps> = ({
 			const json = editor.getJSON();
 			onChange(json);
 		},
+		onSelectionUpdate: ({ editor }) => {
+			if (!onCursorChange) return;
+			const { blockId, position } = getBlockIdAndPos(editor);
+			const last = lastCursorRef.current;
+			if (last && last.blockId === blockId && last.position === position) return;
+			lastCursorRef.current = { blockId, position };
+			onCursorChange(blockId, position);
+		},
 	});
 
 	// Синхронизация внешних изменений
@@ -383,20 +423,38 @@ export const NotionLikeEditor: React.FC<NotionLikeEditorProps> = ({
 			isUpdatingRef.current = true;
 			editor.commands.setContent(content);
 			isUpdatingRef.current = false;
-
-			// Восстанавливаем позицию курсора
+			
 			try {
-				// Проверяем, что позиция всё ещё валидна
 				const docSize = editor.state.doc.content.size;
 				if (from <= docSize && to <= docSize) {
 					editor.commands.setTextSelection({ from, to });
+					
+					if (onCursorChange) {
+						const { blockId, position } = getBlockIdAndPos(editor);
+						lastCursorRef.current = { blockId, position };
+						onCursorChange(blockId, position);
+					}
 				}
 			} catch (e) {
-				// Если не удалось восстановить, ставим в конец
 				console.warn('Could not restore cursor position', e);
 			}
 		}
 	}, [content, editor]);
+
+	function getBlockIdAndPos(editor: any) {
+		const { $from } = editor.state.selection;
+		// обходим вверх по глубинам в поисках node с attrs.blockId
+		for (let depth = $from.depth; depth > 0; depth--) {
+			const node = $from.node(depth);
+			if (node?.attrs?.blockId || node?.attrs?.id) {
+				const blockId: string = node.attrs.blockId ?? node.attrs.id;
+				const blockStartPos: number = $from.start(depth); // абсолютная позиция начала ноды
+				return { blockId, position: blockStartPos };
+			}
+		}
+		// если не нашли — можно вернуть null или сгенерировать
+		return { blockId: null, position: $from.pos };
+	}
 
 	// Обновление editable
 	useEffect(() => {
@@ -418,216 +476,7 @@ export const NotionLikeEditor: React.FC<NotionLikeEditorProps> = ({
 
 	return (
 		<div className={styles.notionEditorWrapper}>
-			<MenuBar editor={editor}/>
 			<EditorContent editor={editor}/>
-			<TableMenu editor={editor}/>
-		</div>
-	);
-};
-
-// Панель инструментов
-interface MenuBarProps {
-	editor: Editor;
-}
-
-const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
-	if (!editor) return null;
-
-	return (
-		<div className={styles.menuBar}>
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() => editor.chain().focus().toggleBold().run()}
-					className={editor.isActive("bold") ? styles.isActive : ""}
-					title="Bold (Ctrl+B)"
-				>
-					<strong>B</strong>
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleItalic().run()}
-					className={editor.isActive("italic") ? styles.isActive : ""}
-					title="Italic (Ctrl+I)"
-				>
-					<em>I</em>
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleStrike().run()}
-					className={editor.isActive("strike") ? styles.isActive : ""}
-					title="Strikethrough"
-				>
-					<s>S</s>
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleCode().run()}
-					className={editor.isActive("code") ? styles.isActive : ""}
-					title="Code (Ctrl+K)"
-				>
-					{"</>"}
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleHighlight().run()}
-					className={editor.isActive("highlight") ? styles.isActive : ""}
-					title="Highlight"
-				>
-					H
-				</button>
-			</div>
-
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-					className={editor.isActive("heading", { level: 1 }) ? styles.isActive : ""}
-					title="Heading 1"
-				>
-					H1
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-					className={editor.isActive("heading", { level: 2 }) ? styles.isActive : ""}
-					title="Heading 2"
-				>
-					H2
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-					className={editor.isActive("heading", { level: 3 }) ? styles.isActive : ""}
-					title="Heading 3"
-				>
-					H3
-				</button>
-			</div>
-
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() => editor.chain().focus().toggleBulletList().run()}
-					className={editor.isActive("bulletList") ? styles.isActive : ""}
-					title="Bullet List"
-				>
-					• List
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleOrderedList().run()}
-					className={editor.isActive("orderedList") ? styles.isActive : ""}
-					title="Numbered List"
-				>
-					1. List
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-					className={editor.isActive("codeBlock") ? styles.isActive : ""}
-					title="Code Block"
-				>
-					{"{ }"}
-				</button>
-				<button
-					onClick={() => editor.chain().focus().toggleBlockquote().run()}
-					className={editor.isActive("blockquote") ? styles.isActive : ""}
-					title="Quote"
-				>
-					" "
-				</button>
-			</div>
-
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() => editor.chain().focus().setTextAlign("left").run()}
-					className={editor.isActive({ textAlign: "left" }) ? styles.isActive : ""}
-					title="Align Left"
-				>
-					⬅
-				</button>
-				<button
-					onClick={() => editor.chain().focus().setTextAlign("center").run()}
-					className={editor.isActive({ textAlign: "center" }) ? styles.isActive : ""}
-					title="Align Center"
-				>
-					↔
-				</button>
-				<button
-					onClick={() => editor.chain().focus().setTextAlign("right").run()}
-					className={editor.isActive({ textAlign: "right" }) ? styles.isActive : ""}
-					title="Align Right"
-				>
-					➡
-				</button>
-			</div>
-
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() =>
-						editor
-							.chain()
-							.focus()
-							.insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-							.run()
-					}
-					title="Insert Table"
-				>
-					⊞ Table
-				</button>
-				<button
-					onClick={() => editor.chain().focus().setHorizontalRule().run()}
-					title="Horizontal Rule"
-				>
-					―
-				</button>
-			</div>
-
-			<div className={styles.menuGroup}>
-				<button
-					onClick={() => editor.chain().focus().undo().run()}
-					disabled={!editor.can().undo()}
-					title="Undo (Ctrl+Z)"
-				>
-					↶
-				</button>
-				<button
-					onClick={() => editor.chain().focus().redo().run()}
-					disabled={!editor.can().redo()}
-					title="Redo (Ctrl+Shift+Z)"
-				>
-					↷
-				</button>
-			</div>
-		</div>
-	);
-};
-
-// Меню для работы с таблицами
-const TableMenu: React.FC<MenuBarProps> = ({ editor }) => {
-	const isInTable = editor.isActive("table");
-
-	if (!isInTable) return null;
-
-	return (
-		<div className={styles.tableMenu}>
-			<button onClick={() => editor.chain().focus().addColumnBefore().run()}>
-				+ Column Before
-			</button>
-			<button onClick={() => editor.chain().focus().addColumnAfter().run()}>
-				+ Column After
-			</button>
-			<button onClick={() => editor.chain().focus().deleteColumn().run()}>
-				− Column
-			</button>
-			<button onClick={() => editor.chain().focus().addRowBefore().run()}>
-				+ Row Before
-			</button>
-			<button onClick={() => editor.chain().focus().addRowAfter().run()}>
-				+ Row After
-			</button>
-			<button onClick={() => editor.chain().focus().deleteRow().run()}>
-				− Row
-			</button>
-			<button onClick={() => editor.chain().focus().deleteTable().run()}>
-				Delete Table
-			</button>
-			<button onClick={() => editor.chain().focus().mergeCells().run()}>
-				Merge Cells
-			</button>
-			<button onClick={() => editor.chain().focus().splitCell().run()}>
-				Split Cell
-			</button>
 		</div>
 	);
 };
