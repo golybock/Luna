@@ -2,38 +2,29 @@
 import type { NextRequest } from 'next/server';
 
 // Публичные пути, доступные без авторизации
-const publicPaths = ['/', '/signIn'];
+const publicPaths = new Set(['/', '/signIn']);
 
 // Пути к ресурсам, всегда доступные
-const resourcesPaths = ['/icons', '/resources'];
+const resourcesPaths = ['/icons', '/resources', '/schemes', '/favicon.ico'];
 
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
-
-	const token = request.cookies.get('access_token')?.value;
-	const isAuthenticated = !!token;
 
 	// Проверка доступа к ресурсам - всегда разрешен
 	if (resourcesPaths.some(path => pathname.startsWith(path))) {
 		return NextResponse.next();
 	}
 
-	if (!isAuthenticated) {
-		// Разрешаем доступ только к публичным путям
-		if (publicPaths.includes(pathname)) {
-			return NextResponse.next();
-		}
+	const isPublic = publicPaths.has(pathname);
+	const isAuthenticated = Boolean(request.cookies.get('access_token')?.value);
 
+	if (!isAuthenticated && !isPublic) {
 		return NextResponse.redirect(new URL('/signIn', request.url));
 	}
 
-	if (isAuthenticated) {
-		// Запрещаем доступ к странице входа, редирект на /start
-		if (pathname === '/signIn') {
-			return NextResponse.redirect(new URL('/start', request.url));
-		}
-
-		return NextResponse.next();
+	// Запрещаем доступ к странице входа, редирект на /start
+	if (isAuthenticated && pathname === '/signIn') {
+		return NextResponse.redirect(new URL('/start', request.url));
 	}
 
 	return NextResponse.next();
