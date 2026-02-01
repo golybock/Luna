@@ -22,7 +22,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({ closeModal }) 
 	const { selectedWorkspaceId } = useWorkspaces();
 
 	const [email, setEmail] = useState("");
-	const [permission, setPermission] = useState<PermissionOption>(null);
+	const [permission, setPermission] = useState<PermissionOption | null>(null);
 
 	if (!closeModal) {
 		throw new Error("Modal doesn't have close method");
@@ -42,7 +42,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({ closeModal }) 
 
 		try {
 			const invite = await workspaceHttpProvider.inviteUserToWorkspace(blank);
-			await navigator.clipboard.writeText(`http://localhost:3000/invite/inviteId?=${invite.inviteId}`);
+			await navigator.clipboard.writeText(`http://localhost:3000/invite?inviteId=${invite.inviteId}`);
 			closeModal();
 		}
 		catch (e: any){
@@ -50,7 +50,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({ closeModal }) 
 		}
 	};
 
-	const loadPermissionOptions = async (value: string) => {
+	const loadPermissionOptions = async () => {
 		const permissions = await workspaceHttpProvider.getAvailableWorkspacePermissions();
 		return permissions.map((item) => {
 			return { value: item, label: item };
@@ -60,69 +60,78 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({ closeModal }) 
 	const darkThemeStyles = {
 		control: (base: any) => ({
 			...base,
-			backgroundColor: '#222222',
-			borderColor: '#333',
+			backgroundColor: 'var(--secondary-container)',
+			borderColor: 'var(--teriary-container)',
 			fontFamily: "Noto sans",
-			fontWeight: 'bold',
+			fontWeight: '500',
+			borderRadius: '6px',
+			minHeight: '40px',
 			'&:hover': {
-				borderColor: '#555'
+				borderColor: 'var(--gray)'
 			}
 		}),
 		menu: (base: any) => ({
 			...base,
-			backgroundColor: '#222222',
-			border: '1px solid #333',
+			backgroundColor: 'var(--secondary-container)',
+			border: '1px solid var(--teriary-container)',
 		}),
 		option: (base: any, state: any) => ({
 			...base,
-			backgroundColor: state.isFocused ? '#333' : '#1a1a1a',
-			color: "#928DAB",
-			fontWeight: 'bold',
+			backgroundColor: state.isFocused ? 'var(--teriary-container)' : 'var(--secondary-container)',
+			color: "var(--text)",
+			fontWeight: '500',
 			fontFamily: "Noto sans",
 			'&:hover': {
-				backgroundColor: '#333'
+				backgroundColor: 'var(--teriary-container)'
 			}
 		}),
 		multiValue: (base: any) => ({
 			...base,
-			backgroundColor: '#333'
+			backgroundColor: 'var(--teriary-container)'
 		}),
 		multiValueLabel: (base: any) => ({
 			...base,
-			color: "#928DAB",
+			color: "var(--text)",
 		}),
 		multiValueRemove: (base: any) => ({
 			...base,
-			color: '#999',
+			color: 'var(--gray)',
 			'&:hover': {
-				backgroundColor: '#555',
-				color: "#928DAB",
+				backgroundColor: 'var(--teriary-container)',
+				color: "var(--text)",
 			}
 		}),
 		input: (base: any) => ({
 			...base,
-			color: "#928DAB",
+			color: "var(--text)",
 		}),
 		placeholder: (base: any) => ({
 			...base,
-			color: "#928DAB",
+			color: "var(--gray)",
 		}),
 		singleValue: (base: any) => ({
 			...base,
-			color: "#928DAB",
+			color: "var(--text)",
 		})
 	};
 
 	return (
-		<Modal closeModal={closeModal}>
+		<Modal closeModal={closeModal} containerClassName={styles.modalContainer}>
 			<div className={styles.container}>
+				<div className={styles.header}>
+					<h4>Invite member</h4>
+					<p>Send an invite link to add someone to this workspace.</p>
+					<p>User only with this email can join by link.</p>
+				</div>
 				<Input
 					id="email"
+					label="Email"
 					type="email"
-					placeholder="Email"
+					placeholder="name@example.com"
 					value={email}
 					onChange={handleEmailChange}
 				/>
+				<div className={styles.selectLabel}>Permission</div>
 				<AsyncSelect
 					id="permissions"
 					styles={darkThemeStyles}
@@ -132,7 +141,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({ closeModal }) 
 					loadOptions={loadPermissionOptions}
 					placeholder="Select permission"
 				/>
-				<Button variant="primary" onClick={handleInviteClick}>
+				<Button variant="primary" onClick={handleInviteClick} className={styles.submit}>
 					Send invite
 				</Button>
 			</div>
