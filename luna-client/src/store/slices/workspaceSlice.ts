@@ -8,12 +8,14 @@ import { pageHttpProvider } from "@/http/pageHttpProvider";
 interface WorkspaceState {
 	selectedWorkspaceId: string | null;
 	selectedWorkspacePageStatistic: PageStatisticView | null;
+	isFetchingWorkspaces: boolean;
 	workspaces: WorkspaceView[],
 }
 
 const initialState: WorkspaceState = {
 	selectedWorkspaceId: null,
 	selectedWorkspacePageStatistic: null,
+	isFetchingWorkspaces: false,
 	workspaces: [],
 };
 
@@ -35,20 +37,23 @@ export const workspacesSlice = createSlice({
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(getAvailableWorkspaces.pending, (state, action) => {
+			.addCase(getAvailableWorkspaces.pending, (state) => {
+				state.isFetchingWorkspaces = true;
 			})
 			.addCase(getAvailableWorkspaces.fulfilled, (state, action: PayloadAction<WorkspaceView[]>) => {
 				state.workspaces = action.payload;
+				state.isFetchingWorkspaces = false;
 			})
-			.addCase(getAvailableWorkspaces.rejected, (state, action) => {
+			.addCase(getAvailableWorkspaces.rejected, (state) => {
+				state.isFetchingWorkspaces = false;
 			})
-			.addCase(getPageStatistic.pending, (state, action) => {
+			.addCase(getPageStatistic.pending, (state) => {
 				state.selectedWorkspacePageStatistic = null;
 			})
 			.addCase(getPageStatistic.fulfilled, (state, action: PayloadAction<PageStatisticView>) => {
 				state.selectedWorkspacePageStatistic = action.payload;
 			})
-			.addCase(getPageStatistic.rejected, (state, action) => {
+			.addCase(getPageStatistic.rejected, (state) => {
 				state.selectedWorkspacePageStatistic = null;
 			})
 			.addCase(logout.fulfilled, (state) => {

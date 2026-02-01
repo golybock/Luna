@@ -8,6 +8,7 @@ interface AuthState {
 	isAuthenticated: boolean;
 	codeRequested: boolean;
 	codeRequestAt: number | null;
+	requestedEmail: string | null;
 	user: AuthView | null;
 	isLoading: boolean;
 }
@@ -16,6 +17,7 @@ const initialState: AuthState = {
 	isAuthenticated: false,
 	codeRequested: false,
 	codeRequestAt: null,
+	requestedEmail: null,
 	user: null,
 	isLoading: false,
 };
@@ -88,6 +90,7 @@ export const authSlice = createSlice({
 		resetCodeRequest: (state) => {
 			state.codeRequested = false;
 			state.codeRequestAt = null;
+			state.requestedEmail = null;
 		}
 	},
 	extraReducers: (builder) => {
@@ -105,25 +108,32 @@ export const authSlice = createSlice({
 				state.isAuthenticated = false;
 				state.isLoading = false;
 			})
-			.addCase(requestVerificationCode.pending, (state) => {
-				state.isLoading = true;
-			})
-			.addCase(requestVerificationCode.fulfilled, (state) => {
+			.addCase(requestVerificationCode.fulfilled, (state, action) => {
 				state.codeRequestAt = Date.now();
 				state.codeRequested = true;
+				state.requestedEmail = action.meta.arg.email;
 				state.isLoading = false;
 			})
-			.addCase(requestVerificationCode.rejected, (state) => {
+			.addCase(signIn.fulfilled, (state, action) => {
+				state.user = action.payload;
+				state.isAuthenticated = true;
+				state.codeRequestAt = null;
+				state.codeRequested = false;
+				state.requestedEmail = null;
+				state.isLoading = false;
+			})
+			.addCase(signIn.rejected, (state) => {
 				state.user = null;
 				state.isAuthenticated = false;
-				state.codeRequested = false;
 				state.codeRequestAt = null;
+				state.codeRequested = false;
+				state.requestedEmail = null;
 				state.isLoading = false;
 			})
 			.addCase(loginGoogle.pending, (state) => {
 				state.isLoading = true;
 			})
-			.addCase(loginGoogle.fulfilled, (state, action) => {
+			.addCase(loginGoogle.fulfilled, (state) => {
 				state.isAuthenticated = true;
 				state.isLoading = false;
 			})
@@ -135,21 +145,7 @@ export const authSlice = createSlice({
 			.addCase(signIn.pending, (state) => {
 				state.isLoading = true;
 			})
-			.addCase(signIn.fulfilled, (state, action) => {
-				state.user = action.payload;
-				state.isAuthenticated = true;
-				state.codeRequestAt = null;
-				state.codeRequested = false;
-				state.isLoading = false;
-			})
-			.addCase(signIn.rejected, (state) => {
-				state.user = null;
-				state.isAuthenticated = false;
-				state.codeRequestAt = null;
-				state.codeRequested = false;
-				state.isLoading = false;
-			})
-			.addCase(getUser.pending, (state) => {
+			.addCase(getUser.pending, () => {
 			})
 			.addCase(getUser.fulfilled, (state, action) => {
 				if (state.user) {

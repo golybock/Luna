@@ -31,14 +31,14 @@ export const pagesSlice = createSlice({
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(getWorkspacePages.pending, (state, action) => {
+			.addCase(getWorkspacePages.pending, (state) => {
 				state.isFetchingPages = true;
 			})
 			.addCase(getWorkspacePages.fulfilled, (state, action: PayloadAction<LightPageView[]>) => {
 				state.pages = action.payload;
 				state.isFetchingPages = false;
 			})
-			.addCase(getWorkspacePages.rejected, (state, action) => {
+			.addCase(getWorkspacePages.rejected, (state) => {
 				state.isFetchingPages = false;
 			})
 	}
