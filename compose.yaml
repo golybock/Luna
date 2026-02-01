@@ -82,6 +82,7 @@
         image: confluentinc/cp-kafka:7.4.0
         container_name: kafka
         restart: on-failure
+        user: root
         environment:
             KAFKA_NODE_ID: 1
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
@@ -111,15 +112,17 @@
             - kafka
         entrypoint: [ "/bin/sh", "-c" ]
         command: |
-            for i in $(seq 1 30); do
-              if kafka-topics --bootstrap-server kafka:29092 --list >/dev/null 2>&1; then
-                kafka-topics --bootstrap-server kafka:29092 --create --topic workspace-permission-events --partitions 1 --replication-factor 1 \
-                  && echo "Topic created" && exit 0
-              fi
-              echo "Waiting for kafka... ($i)"
-              sleep 2
-            done
-            echo "Failed to create topic" && exit 1
+            "for i in $$(seq 1 30); do
+              if kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1; then
+                kafka-topics --bootstrap-server kafka:9092 --create --topic workspace-permission-events --partitions 1 --replication-factor 1 &&
+                echo 'Topic created' && exit 0;
+              fi;
+              echo 'Waiting for kafka... ('$$i')';
+              sleep 2;
+            done;
+            echo 'Failed to create topic' && exit 1"
+        networks:
+            - backend
 
     # Services
     luna.auth.api:
@@ -139,8 +142,6 @@
 
     luna.workspaces.api:
         image: luna.workspaces.api
-        ports:
-            - "7003:8080"
         environment:
             ASPNETCORE_ENVIRONMENT: Release
         build:
@@ -154,8 +155,6 @@
 
     luna.users.api:
         image: luna.users.api
-        ports:
-            - "7001:8080"
         environment:
             ASPNETCORE_ENVIRONMENT: Release
         build:
@@ -166,8 +165,6 @@
 
     luna.pages.api:
         image: luna.pages.api
-        ports:
-            - "7005:8080"
         environment:
             ASPNETCORE_ENVIRONMENT: Release
         build:
@@ -183,8 +180,6 @@
 
     luna.users.gRPC:
         image: luna.auth.grpc
-        ports:
-            - "7002:8080"
         environment:
             ASPNETCORE_ENVIRONMENT: Release
         build:
@@ -213,8 +208,6 @@
         container_name: luna_notification
         environment:
             ASPNETCORE_ENVIRONMENT: Release
-        ports:
-            - "7004:8080"
         build:
             context: .
             dockerfile: Luna.Notification.API/Dockerfile
