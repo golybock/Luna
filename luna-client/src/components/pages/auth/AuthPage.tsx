@@ -15,23 +15,36 @@ export const AuthPage: React.FC = () => {
 	const [email, setEmail] = useState<string>("");
 	const [code, setCode] = useState<string>("");
 	const [error, setError] = useState<string>("");
-	const { loginGoogle, requestCode, signIn, codeRequested, codeRequestAt, isAuthenticated } = useAuth();
+	const {
+		loginGoogle,
+		requestCode,
+		signIn,
+		requestedEmail,
+		codeRequested,
+		codeRequestAt,
+		isAuthenticated
+	} = useAuth();
 	const { resetCodeRequest } = useActions();
 	const router = useRouter();
 
 	useEffect(() => {
 		if (codeRequestAt != null && codeRequestAt + 360 < Date.now()) {
 			resetCodeRequest();
-			console.log("reset code");
 		}
 	}, []);
+
+	useEffect(() => {
+		if (requestedEmail) {
+			setEmail(requestedEmail);
+		}
+	}, [requestedEmail]);
 
 	const handleGoogleClick = async () => {
 		setError('');
 		try {
 			await loginGoogle()
 			router.push('/start');
-		} catch (err) {
+		} catch {
 			setError('Check email and password');
 		}
 	};
@@ -92,7 +105,11 @@ export const AuthPage: React.FC = () => {
 
 					<Button variant="primary"
 							onClick={async () => {
-								codeRequested ? await handleSignIn() : await handleCodeRequested()
+								if (codeRequested) {
+									await handleSignIn();
+								} else {
+									await handleCodeRequested();
+								}
 							}}
 					>
 						<p>{codeRequested ? "SignIn" : "Send code"}</p>
