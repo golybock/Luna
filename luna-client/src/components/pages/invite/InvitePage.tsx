@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { WorkspaceView } from "@/models/workspace/WorkspaceView";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
 import { workspaceHttpProvider } from "@/http/workspaceHttpProvider";
 import Image from "next/image";
 import Card from "@/ui/card/Card";
