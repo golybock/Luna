@@ -13,22 +13,30 @@ export const ProfilePage: React.FC = () => {
 		<div className={styles.container}>
 			<div className={styles.content}>
 				<div className={styles.card}>
-					<div className={styles.imageCircle}>
-						{user?.user?.image && (
+					<div className={styles.avatar}>
+						{user?.user?.image ? (
 							<Image
 								src={user.user?.image}
 								alt="userImage"
 								priority={false}
-								width={192}
-								height={192}
+								width={72}
+								height={72}
 							/>
+						) : (
+							<div className={styles.avatarFallback}>
+								{(user?.user?.displayName || user?.user?.username || user?.email || "")
+									.slice(0, 2)
+									.toUpperCase()}
+							</div>
 						)}
 					</div>
 					<div className={styles.userData}>
-						<h3>{user?.user?.username}</h3>
+						<h3>{user?.user?.displayName || user?.user?.username}</h3>
+						<p className={styles.muted}>@{user?.user?.username}</p>
 						<p>{user?.email}</p>
-						<p>{user?.user?.displayName}</p>
-						<p>{user?.user?.bio}</p>
+						{user?.user?.bio && (
+							<p className={styles.bio}>{user.user.bio}</p>
+						)}
 					</div>
 				</div>
 			</div>
