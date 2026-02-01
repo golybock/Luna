@@ -3,15 +3,20 @@
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	border: none;
+	border: 1px solid var(--gray);
 	border-radius: 6px;
 	cursor: pointer;
 	font-family: "Noto Sans", system-ui;
 	font-weight: 500;
+	line-height: 1;
 	transition: all 0.2s ease;
 	outline: none;
 	text-decoration: none;
 	user-select: none;
+	background: var(--secondary-container);
+	color: var(--text);
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+	box-sizing: border-box;
 }
 
 .button:disabled {
@@ -20,35 +25,40 @@
 }
 
 .primary {
-	background-color: var(--primary-variant-dark);
-	color: var(--white);
+	background-color: var(--secondary-container);
+	color: var(--text);
 
 	&:hover:not(:disabled) {
-		background-color: var(--primary-variant);
+		background-color: var(--teriary-container);
+		border-color: var(--gray);
 	}
 }
 
 .secondary {
-	background-color: var(--dark-gray);
-	color: var(--text);
-
-	&:hover:not(:disabled) {
-		background-color: var(--tertiary-container);
-	}
-}
-
-.ghost {
 	background-color: transparent;
 	color: var(--text);
+	border-color: var(--gray);
 
 	&:hover:not(:disabled) {
 		background-color: var(--secondary-container);
 	}
 }
 
+.ghost {
+	background-color: transparent;
+	color: var(--text);
+	border-color: transparent;
+
+	&:hover:not(:disabled) {
+		background-color: var(--secondary-container);
+		border-color: var(--teriary-container);
+	}
+}
+
 .danger {
 	background-color: var(--error);
 	color: var(--white);
+	border-color: var(--error);
 }
 
 .danger:hover:not(:disabled) {
@@ -57,9 +67,9 @@
 
 /* Sizes */
 .small {
-	padding: 0 0;
+	padding: 6px 12px;
 	font-size: 14px;
-	height: 20px;
+	height: 32px;
 }
 
 .medium {

@@ -8,11 +8,9 @@ interface LabelProps extends Omit<InputHTMLAttributes<HTMLLabelElement>, 'size'>
 }
 
 const Label: React.FC<LabelProps> = ({
-	disabled = false,
 	icon,
 	children,
-	className = '',
-	...props
+	className = ''
 }) => {
 	const labelClasses = [
 		styles.label,

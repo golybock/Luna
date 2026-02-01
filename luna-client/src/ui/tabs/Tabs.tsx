@@ -12,10 +12,6 @@ interface TabPaneProps {
 	title: string;
 }
 
-const TabPane: React.FC<TabPaneProps> = ({ children, title }) => {
-	return <div>{children}</div>;
-};
-
 const Tabs: React.FC<TabsProps> = ({ children, defaultActiveTab = 0, className = '' }) => {
 	const [activeTab, setActiveTab] = useState<number>(defaultActiveTab);
 	const tabPanes = React.Children.toArray(children) as React.ReactElement<TabPaneProps>[];

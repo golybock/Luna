@@ -4,7 +4,7 @@ import styles from "./Card.module.scss";
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 	className?: string;
-	padding?: CardPadding;
+	padding?: 'small' | 'medium' | 'large' | 'default' | "none";
 	hover?: boolean;
 	elevated?: boolean;
 	bordered?: boolean;

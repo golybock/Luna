@@ -1,27 +1,34 @@
-﻿import React, { ButtonHTMLAttributes, ReactNode } from "react";
+﻿import React, { ReactNode } from "react";
 import styles from "./Button.module.scss";
 
-interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
+type ButtonBaseProps = {
 	children?: ReactNode;
-	ref?: React.RefObject<HTMLButtonElement>;
-	variant?: ButtonVariant;
-	size?: ButtonSize;
-	disabled?: boolean;
+	ref?: React.Ref<any>;
+	variant?: "primary" | "secondary" | "ghost" | "danger";
+	size?: 'small' | 'medium' | 'large' | 'default' | "icon";
 	icon?: ReactNode;
 	className?: string;
-}
+};
+
+type ButtonAsButton = ButtonBaseProps & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'> & {
+	href?: undefined;
+};
+
+type ButtonAsAnchor = ButtonBaseProps & React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+	href: string;
+};
+
+type ButtonProps = ButtonAsButton | ButtonAsAnchor;
 
 const Button: React.FC<ButtonProps> = ({
+	ref,
 	children,
-	ref = null,
 	variant = 'primary',
 	size = 'medium',
-	disabled = false,
 	icon,
-	onClick,
 	className = '',
 	...props
-}) => {
+}: ButtonProps) => {
 
 	const classes = [
 		styles.button,
@@ -30,13 +37,32 @@ const Button: React.FC<ButtonProps> = ({
 		className
 	].filter(Boolean).join(' ');
 
+	if ('href' in props) {
+		const { href, rel, onClick, ...anchorProps } = props as ButtonAsAnchor;
+		return (
+			<a
+				className={classes}
+				href={href}
+				rel={rel}
+				ref={ref}
+				onClick={onClick}
+				{...anchorProps}
+			>
+				{icon && <span className={styles.icon}>{icon}</span>}
+				{children}
+			</a>
+		);
+	}
+
+	const { disabled, onClick, ...buttonProps } = props as ButtonAsButton;
+
 	return (
 		<button
-			ref={ref}
 			className={classes}
 			onClick={onClick}
+			ref={ref}
 			disabled={disabled}
-			{...props}
+			{...buttonProps}
 		>
 			{icon && <span className={styles.icon}>{icon}</span>}
 			{children}

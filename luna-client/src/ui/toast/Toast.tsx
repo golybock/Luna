@@ -4,7 +4,7 @@ import styles from "./Toast.module.scss";
 
 interface ToastProps {
 	message: string;
-	type?: ToastType;
+	type?: "info" | "success" | "warning" | "error";
 	isVisible: boolean;
 	onClose: () => void;
 	autoClose?: boolean;
