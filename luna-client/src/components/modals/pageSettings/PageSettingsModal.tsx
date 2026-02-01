@@ -1,7 +1,6 @@
 ﻿import React, { useState } from "react";
 import Modal from "@/components/ui/modal/Modal";
 import styles from "./PageSettingsModal.module.scss";
-import Input from "@/ui/input/Input";
 import Button from "@/ui/button/Button";
 import Image from "next/image";
 
@@ -29,23 +28,31 @@ export const PageSettingsModal: React.FC<PageSettingsModalProps> = ({ closeModal
 	}
 
 	return (
-		<Modal closeModal={closeModal}>
+		<Modal closeModal={closeModal} containerClassName={styles.modalContainer}>
 			<div className={styles.container}>
 				<h4>Page cover</h4>
-				<Input
-					label="Cover url"
-					type="url"
+				<div className={styles.previewBox}>
+					{innerCover ? (
+						<Image
+							src={innerCover}
+							alt="cover"
+							fill
+							sizes="100vw"
+							className={styles.previewImage}
+						/>
+					) : (
+						<span className={styles.previewPlaceholder}>Preview</span>
+					)}
+				</div>
+				<label className={styles.label}>Cover url</label>
+				<textarea
+					className={styles.textarea}
 					placeholder="Enter URL"
 					value={innerCover}
 					onChange={(e) => setInnerCover(e.target.value)}
+					rows={3}
 				/>
-				{innerCover && (
-					<div>
-						<h5>Preview</h5>
-						<Image src={innerCover} alt="cover" width={250} height={50} />
-					</div>
-				)}
-				<Button onClick={handleSave} variant="primary">
+				<Button onClick={handleSave} variant="secondary" className={styles.notionButton}>
 					Save
 				</Button>
 			</div>
