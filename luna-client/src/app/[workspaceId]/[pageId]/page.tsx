@@ -4,12 +4,12 @@ import { Page } from "@/components/pages/page/Page";
 
 export default async function pageContainer(
 	{ params, searchParams }: {
-		params: { workspaceId: string, pageId: string },
-		searchParams?: { blockId?: string }
+		params: Promise<{ workspaceId: string, pageId: string }>,
+		searchParams?: Promise<{ blockId?: string }>
 	}) {
 
-	const { pageId } = params;
-	const blockId = searchParams?.blockId;
+	const { pageId } = await params;
+	const { blockId } = await searchParams;
 
 	return <Page pageId={pageId} blockId={blockId}/>
 }
