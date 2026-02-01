@@ -131,7 +131,7 @@ public class PageHub : HubBase, IPageHub
 		List<UserView> userViews = users
 			.Select(c => c.ToView()).ToList();
 
-		await Clients.OthersInGroup(group).SendAsync("UsersSet", userViews);
+		await Clients.Group(group).SendAsync("UsersSet", userViews);
 		_logger.LogInformation("User {UserId} joined page {PageId}", UserId, pageId);
 	}
 
@@ -180,7 +180,8 @@ public class PageHub : HubBase, IPageHub
 
 		if (existingCursor != null)
 		{
-			UserCursorDomain cursorDomain = UserCursorDomain.FromBlank(userCursorBlank, UserId.Value.ToString(), existingCursor.UserDisplayName);
+			UserCursorDomain cursorDomain = UserCursorDomain.FromBlank(userCursorBlank, UserId.Value.ToString(),
+				existingCursor.UserDisplayName);
 
 			cursors.Remove(existingCursor);
 			cursors.Add(cursorDomain);
@@ -191,7 +192,7 @@ public class PageHub : HubBase, IPageHub
 		{
 			try
 			{
-				UserDomain? user = await _sessionCacheRepository.GetPageUserByIdAsync(pageId,  UserId.Value.ToString());
+				UserDomain? user = await _sessionCacheRepository.GetPageUserByIdAsync(pageId, UserId.Value.ToString());
 
 				UserCursorDomain cursorDomain =
 					UserCursorDomain.FromBlank(userCursorBlank, UserId.Value.ToString(), user?.DisplayName ?? "Unknow");
@@ -257,7 +258,8 @@ public class PageHub : HubBase, IPageHub
 		int version = pageFull?.PageVersionView?.Version ?? 0;
 		DateTime? updatedAt = pageFull?.PageVersionView?.UpdatedAt;
 
-		await Clients.OthersInGroup($"page_{pageId}")
+		string group = $"page_{pageId}";
+		await Clients.OthersInGroup(group)
 			.SendAsync("PageContentUpdated", new {pageId, document, version, updatedAt});
 	}
 
@@ -276,6 +278,8 @@ public class PageHub : HubBase, IPageHub
 
 	public async Task CreateComment(string pageId, CreatePageCommentBlank createPageCommentBlank)
 	{
+		string group = $"page_{pageId}";
+		
 		if (!UserId.HasValue)
 		{
 			Context.Abort();
@@ -292,7 +296,7 @@ public class PageHub : HubBase, IPageHub
 
 		GetRequest getRequest = new GetRequest {Id = new Guid(pageId), UserId = UserId.Value};
 		IEnumerable<PageCommentView> comments = await _pageService.GetPageCommentsAsync(getRequest);
-		await Clients.Group($"page_{pageId}").SendAsync("PageCommentsUpdated", new {pageId, comments});
+		await Clients.Group(group).SendAsync("PageCommentsUpdated", new {pageId, comments});
 	}
 
 	public async Task UpdateComment(string commentId, CreatePageCommentBlank createPageCommentBlank)
