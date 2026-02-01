@@ -1,17 +1,16 @@
 ﻿using System.Text.Json;
-using Confluent.Kafka;
 using Luna.Tools.SharedModels.Models.Kafka;
+using Luna.Tools.SharedModels.Models.Outbox;
 using Luna.Workspaces.Domain.Models;
+using Luna.Workspaces.Repositories.Repositories.OutboxRepository;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Luna.Workspaces.Services.Services.PermissionEventService;
 
-public class PermissionEventService : IPermissionEventService, IDisposable
+public class PermissionEventService : IPermissionEventService
 {
-	private readonly IProducer<string, string> _producer;
 	private readonly ILogger<PermissionEventService> _logger;
-	private readonly KafkaSettings _kafkaSettings;
+	private readonly IOutboxRepository _outboxRepository;
 
 	private static string Key(WorkspaceUserPermission workspaceUserPermission) => "workspaceId:" +
 		workspaceUserPermission.WorkspaceId + ":userId:" + workspaceUserPermission.UserId;
@@ -20,24 +19,10 @@ public class PermissionEventService : IPermissionEventService, IDisposable
 
 	public PermissionEventService(
 		ILogger<PermissionEventService> logger,
-		IOptions<KafkaSettings> kafkaSettings)
+		IOutboxRepository outboxRepository)
 	{
 		_logger = logger;
-		_kafkaSettings = kafkaSettings.Value;
-
-		ProducerConfig config = new ProducerConfig
-		{
-			BootstrapServers = _kafkaSettings.BootstrapServers,
-			ClientId = _kafkaSettings.ClientId,
-			Acks = Acks.Leader,
-			MessageTimeoutMs = 1000,
-			RequestTimeoutMs = 5000,
-			RetryBackoffMs = 100
-		};
-
-		_producer = new ProducerBuilder<string, string>(config)
-			.SetErrorHandler((_, e) => _logger.LogError("Kafka producer error: {Error}", e.Reason))
-			.Build();
+		_outboxRepository = outboxRepository;
 	}
 
 	public async Task CreateWorkspaceUserPermissionsAsync(WorkspaceUserPermission workspaceUserPermission)
@@ -104,63 +89,33 @@ public class PermissionEventService : IPermissionEventService, IDisposable
 
 	private async Task PublishEventAsync(PermissionEvent eventData, string key)
 	{
-		try
+		PermissionEventOutboxPayload payload = new PermissionEventOutboxPayload
 		{
-			string message = JsonSerializer.Serialize(eventData, new JsonSerializerOptions
-			{
-				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-				WriteIndented = false
-			});
+			Key = key,
+			Event = eventData
+		};
 
-			Message<string, string> kafkaMessage = new Message<string, string>
-			{
-				Key = key,
-				Value = message,
-				Timestamp = new Timestamp(eventData.Timestamp)
-			};
+		string message = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+		{
+			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+			WriteIndented = false
+		});
 
-			DeliveryResult<string, string>? deliveryResult =
-				await _producer.ProduceAsync(_kafkaSettings.PermissionEventsTopic, kafkaMessage);
+		OutboxMessageDatabase outboxMessage = new OutboxMessageDatabase
+		{
+			Id = Guid.NewGuid(),
+			Type = OutboxMessageTypes.PermissionEvent,
+			Payload = message,
+			Status = OutboxMessageStatus.Pending,
+			Attempts = 0,
+			CreatedAt = DateTime.UtcNow
+		};
 
-			_logger.LogInformation(
-				"Successfully published event {EventType} to Kafka topic {Topic}. Partition: {Partition}, Offset: {Offset}, Key: {Key}",
-				eventData.EventType,
-				_kafkaSettings.PermissionEventsTopic,
-				deliveryResult.Partition,
-				deliveryResult.Offset,
-				key);
-		}
-		catch (ProduceException<string, string> ex)
+		bool saved = await _outboxRepository.AddMessageAsync(outboxMessage);
+		if (!saved)
 		{
-			_logger.LogError(ex,
-				"Failed to publish event {EventType} to Kafka topic {Topic}. Key: {Key}, Error: {Error}",
-				eventData.EventType,
-				_kafkaSettings.PermissionEventsTopic,
-				key,
-				ex.Error?.Reason);
-			throw;
-		}
-		catch (Exception ex)
-		{
-			_logger.LogError(ex,
-				"Unexpected error publishing event {EventType} to Kafka topic {Topic}. Key: {Key}",
-				eventData.EventType,
-				_kafkaSettings.PermissionEventsTopic,
-				key);
-			throw;
-		}
-	}
-
-	public void Dispose()
-	{
-		try
-		{
-			_producer.Flush(TimeSpan.FromSeconds(5));
-			_producer.Dispose();
-		}
-		catch (Exception ex)
-		{
-			_logger.LogError(ex, "Error disposing Kafka producer");
+			_logger.LogError("Failed to save outbox message for permission event {EventType}", eventData.EventType);
+			throw new Exception("Failed to save outbox message");
 		}
 	}
 }

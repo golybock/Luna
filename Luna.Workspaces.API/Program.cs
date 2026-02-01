@@ -4,9 +4,11 @@ using Luna.Tools.SharedModels.Models.Kafka;
 using Luna.Users.gRPC.Client.Services;
 using Luna.Workspaces.Repositories.Context;
 using Luna.Workspaces.Repositories.Repositories.InviteRepository;
+using Luna.Workspaces.Repositories.Repositories.OutboxRepository;
 using Luna.Workspaces.Repositories.Repositories.WorkspacePermissionRepository;
 using Luna.Workspaces.Repositories.Repositories.WorkspaceRepository;
 using Luna.Workspaces.Services.Services.InviteService;
+using Luna.Workspaces.Services.Services.OutboxPublisherService;
 using Luna.Workspaces.Services.Services.PermissionEventService;
 using Luna.Workspaces.Services.Services.WorkspacePermissionService;
 using Luna.Workspaces.Services.Services.WorkspaceService;
@@ -51,12 +53,15 @@ builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddScoped<IInviteRepository, InviteRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<IWorkspacePermissionService, WorkspacePermissionService>();
 builder.Services.AddScoped<IInviteService, InviteService>();
 
-builder.Services.AddSingleton<IPermissionEventService, PermissionEventService>();
+builder.Services.AddScoped<IPermissionEventService, PermissionEventService>();
+
+builder.Services.AddHostedService<OutboxPublisherService>();
 
 builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
 
