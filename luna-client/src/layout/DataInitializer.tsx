@@ -18,11 +18,11 @@ export default function DataInitializer({ children }: PropsWithChildren) {
 
 	// Загрузка воркспейсов после успешной авторизации
 	useEffect(() => {
-		if (isAuthenticated && !authLoading) {
+		if (isAuthenticated) {
 			dispatch(getAvailableWorkspaces());
 			dispatch(getUser())
 		}
-	}, [isAuthenticated, authLoading, dispatch]);
+	}, [isAuthenticated, dispatch]);
 
 	if (authLoading || isFetchingWorkspaces) {
 		return (
