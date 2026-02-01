@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./layout.module.scss";
 import Image from "next/image";
 import { useActions } from "@/store/hooks/useActions";
@@ -26,6 +26,12 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 	const { openModal } = useModal();
 	const { selectedWorkspaceId } = useWorkspaces();
 	const dispatch = useDispatch<AppDispatch>();
+	const [sidebarWidth, setSidebarWidth] = useState<number>(240);
+	const [isResizing, setIsResizing] = useState(false);
+	const resizeRafRef = useRef<number | null>(null);
+	const [isMobile, setIsMobile] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	const router = useRouter();
 
@@ -36,6 +42,51 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 	useEffect(() => {
 		dispatch(getWorkspacePages(selectedWorkspaceId))
 	}, [selectedWorkspaceId])
+
+	useEffect(() => {
+		const mediaQuery = window.matchMedia("(max-width: 1024px)");
+		const handleChange = () => {
+			setIsMobile(mediaQuery.matches);
+			if (!mediaQuery.matches) {
+				setIsSidebarOpen(false);
+			}
+		};
+		handleChange();
+		mediaQuery.addEventListener("change", handleChange);
+		return () => mediaQuery.removeEventListener("change", handleChange);
+	}, []);
+
+	useEffect(() => {
+		if (!isResizing) return;
+
+		const handleMouseMove = (event: MouseEvent) => {
+			const containerLeft = containerRef.current?.getBoundingClientRect().left ?? 0;
+			const nextWidth = Math.min(360, Math.max(200, event.clientX - containerLeft));
+			if (resizeRafRef.current) {
+				cancelAnimationFrame(resizeRafRef.current);
+			}
+			resizeRafRef.current = requestAnimationFrame(() => {
+				setSidebarWidth(nextWidth);
+			});
+		};
+
+		const handleMouseUp = () => {
+			setIsResizing(false);
+		};
+
+		document.body.classList.add(styles.resizing);
+		window.addEventListener("mousemove", handleMouseMove);
+		window.addEventListener("mouseup", handleMouseUp);
+		return () => {
+			if (resizeRafRef.current) {
+				cancelAnimationFrame(resizeRafRef.current);
+				resizeRafRef.current = null;
+			}
+			document.body.classList.remove(styles.resizing);
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("mouseup", handleMouseUp);
+		};
+	}, [isResizing]);
 
 	const topMenuItems: MenuItem[] = useMemo(() => {
 		return [
@@ -79,8 +130,26 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 	}
 
 	return (
-		<div className={styles.container}>
-			<nav className={styles.navbar}>
+		<div className={styles.container} ref={containerRef}>
+			{isMobile && (
+				<button
+					className={styles.hamburger}
+					onClick={() => setIsSidebarOpen(true)}
+					aria-label="Open navigation"
+				>
+					<Image src="/icons/menu_24.svg" alt="menu" width={20} height={20}/>
+				</button>
+			)}
+			{isMobile && isSidebarOpen && (
+				<div
+					className={styles.overlay}
+					onClick={() => setIsSidebarOpen(false)}
+				/>
+			)}
+			<nav
+				className={`${styles.navbar} ${isResizing ? styles.navbarResizing : ""} ${isMobile ? styles.navbarMobile : ""} ${isSidebarOpen ? styles.navbarOpen : ""}`}
+				style={{ width: isMobile ? undefined : sidebarWidth }}
+			>
 				<div>
 					<div className={styles.navbarHeader} onClick={handleOnClickSettings} role="button">
 						<div className={styles.profileBadge}>
@@ -135,6 +204,13 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
 						Logout
 					</p>
 				</div>
+				{!isMobile && (
+					<div
+						className={styles.resizer}
+						onMouseDown={() => setIsResizing(true)}
+						role="presentation"
+					/>
+				)}
 			</nav>
 			<div className={styles.content}>
 				{children}
