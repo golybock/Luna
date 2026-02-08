@@ -6,6 +6,10 @@
 	border-radius: 0;
 	overflow: visible;
 	position: relative;
+
+	p, h1, h2, h3, h4, h5, h6, label, input, a, span {
+		margin: 0 !important;
+	}
 }
 
 .menuBar {
