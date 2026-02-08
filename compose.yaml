@@ -179,7 +179,7 @@
                 condition: service_started
 
     luna.users.gRPC:
-        image: luna.auth.grpc
+        image: luna.users.grpc
         environment:
             ASPNETCORE_ENVIRONMENT: Release
         build:
