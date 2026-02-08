@@ -21,11 +21,11 @@ export const PageWithBlockCard: React.FC<PageWithBlockCardProps> = ({page, onCli
 			onClick={() => onClick(page.pageId, page.blockId)}
 		>
 			{pageView.cover && (
-				<Image
+				<img
 					src={pageView.cover}
 					alt="cover"
-					width={200}
-					height={100}
+					width={150}
+					height={75}
 				/>
 			)}
 			<div className={styles.pageCardWithBlockContent}>

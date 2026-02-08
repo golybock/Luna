@@ -2,8 +2,7 @@
 	position: relative;
 	width: 100%;
 	max-width: 150px;
-	min-width: 150px;
-	height: 150px;
+	height: 200px;
 	cursor: pointer;
 
 	img{
@@ -23,21 +22,22 @@
 .pageCardWithBlock {
 	position: relative;
 	width: 100%;
-	max-width: 200px;
-	min-width: 200px;
+	max-width: 150px;
 	height: 250px;
 	cursor: pointer;
 
 	img{
+		position: absolute;
 		border-radius: 12px 12px 0 0;
 	}
 
 	&Content{
 		display: flex;
-		padding: 12px;
+		padding: 8px;
 		height: 100%;
-		flex-direction: column;
+		margin-top: 64px;
 		gap: 16px;
+		flex-direction: column;
 	}
 
 	&Header{

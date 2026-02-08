@@ -18,7 +18,7 @@ export const PageCard: React.FC<PageCardProps> = ({page, onClick}) => {
 			onClick={() => onClick(page.id)}
 		>
 			{page.cover && (
-				<Image
+				<img
 					src={page.cover}
 					alt="cover"
 					width={150}
