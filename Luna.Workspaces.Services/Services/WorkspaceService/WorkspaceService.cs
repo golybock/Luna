@@ -82,8 +82,8 @@ public class WorkspaceService : IWorkspaceService
 		// собираем полную модель
 		List<WorkspaceUserDetailedView> workspaceUsersDetailed = workspaceDatabase.WorkspaceUsers.Select(item =>
 		{
-			UserDomain? userDomain = users.FirstOrDefault(u => u.Id == item.UserId);
-			return item.ToDetailedView(userDomain?.ToView());
+			UserDomain userDomain = users.FirstOrDefault(u => u.Id == item.UserId) ?? new UserDomain();
+			return item.ToDetailedView(userDomain.ToView());
 		}).ToList();
 
 		return workspaceDatabase.ToDetailedView(workspaceUsersDetailed);
