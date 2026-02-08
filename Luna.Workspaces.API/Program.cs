@@ -39,7 +39,8 @@ builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafk
 
 DatabaseOptions databaseOptions = new DatabaseOptions()
 {
-	ConnectionString = builder.Configuration.GetConnectionString("luna_workspaces") ?? throw new InvalidOperationException()
+	ConnectionString = builder.Configuration.GetConnectionString("luna_workspaces") ??
+	                   throw new InvalidOperationException()
 };
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -51,7 +52,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
 
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
-builder.Services.AddScoped<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider => new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
+builder.Services.AddScoped<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider =>
+	new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddScoped<IInviteRepository, InviteRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 
@@ -66,7 +68,10 @@ builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddSingleton<IUserServiceClient>(_ => new UserServiceClient(builder.Configuration["gRPC:Host"]));
 
 builder.Services.AddDbContext<LunaWorkspacesContext>(options =>
-	options.UseNpgsql(databaseOptions.ConnectionString));
+	options
+		.UseNpgsql(databaseOptions.ConnectionString)
+		.UseLoggerFactory(LoggerFactory.Create(loggingBuilder => loggingBuilder.AddFilter(_ => false)))
+);
 
 
 WebApplication app = builder.Build();
