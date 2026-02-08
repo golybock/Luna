@@ -33,10 +33,9 @@ export const PageSettingsModal: React.FC<PageSettingsModalProps> = ({ closeModal
 				<h4>Page cover</h4>
 				<div className={styles.previewBox}>
 					{innerCover ? (
-						<Image
+						<img
 							src={innerCover}
 							alt="cover"
-							fill
 							sizes="100vw"
 							className={styles.previewImage}
 						/>

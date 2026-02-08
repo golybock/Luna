@@ -98,7 +98,7 @@ export const Page: React.FC<PageProps> = ({ pageId, blockId = undefined }) => {
 		<div className={styles.pageRoot}>
 			<div className={styles.cover} style={{ height: cover ? "auto" : "24px" }}>
 				{cover && (
-					<Image
+					<img
 						src={cover}
 						alt="cover"
 						width={2000}
