@@ -127,9 +127,9 @@ export default function LandingPage() {
 					</div>
 					<Card elevated padding="large" className={styles.heroCard}>
 						<div className={styles.mockupContent}>
-							<h4>Большие блоки, аккуратный контент</h4>
+							<h4>Notion-like редактор</h4>
 							<p>
-								Страницы в MongoDB, версии и блоки, быстрый поиск по содержимому
+								Совместная работа, версии и блоки, быстрый поиск по содержимому
 								через ElasticSearch.
 							</p>
 							<div className={styles.mockupHighlights}>
