@@ -1,23 +1,37 @@
-﻿using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
 
 namespace Luna.Gateway.API.Middleware;
 
 public class TokenValidationMiddleware
 {
 	private readonly RequestDelegate _next;
-	private readonly IHttpClientFactory _httpClientFactory;
+	private readonly IConfiguration _configuration;
 	private readonly ILogger<TokenValidationMiddleware> _logger;
+	private readonly StackExchange.Redis.IDatabase _redisDatabase;
 
-	public TokenValidationMiddleware(RequestDelegate next, IHttpClientFactory httpClientFactory, ILogger<TokenValidationMiddleware> logger)
+	public TokenValidationMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<TokenValidationMiddleware> logger, StackExchange.Redis.IConnectionMultiplexer redis)
 	{
 		_next = next;
-		_httpClientFactory = httpClientFactory;
+		_configuration = configuration;
 		_logger = logger;
+		_redisDatabase = redis.GetDatabase();
 	}
 
 	public async Task InvokeAsync(HttpContext context)
 	{
 		string? path = context.Request.Path.Value?.ToLower();
+
+		// Быстрый ответ для теста производительности шлюза (raw benchmark)
+		if (path == "/" || path == "/ping")
+		{
+			context.Response.StatusCode = 200;
+			context.Response.ContentType = "text/plain";
+			await context.Response.WriteAsync("available");
+			return;
+		}
 
 		// Пропускаем запросы к Auth.API
 		if (path != null && path.Contains("/api/v1/auth"))
@@ -26,13 +40,13 @@ public class TokenValidationMiddleware
 			return;
 		}
 
-		if (!context.Request.Cookies.TryGetValue("access_token", out string? accessToken))
+		if (!context.Request.Cookies.TryGetValue("access_token", out string? accessToken) || string.IsNullOrEmpty(accessToken))
 		{
 			await WriteUnauthorizedResponse(context, "No access token");
 			return;
 		}
 
-		if (!context.Request.Cookies.TryGetValue("refresh_token", out string? refreshToken))
+		if (!context.Request.Cookies.TryGetValue("refresh_token", out string? refreshToken) || string.IsNullOrEmpty(refreshToken))
 		{
 			await WriteUnauthorizedResponse(context, "No refresh token");
 			return;
@@ -40,74 +54,76 @@ public class TokenValidationMiddleware
 
 		try
 		{
-			HttpClient client = _httpClientFactory.CreateClient("AuthValidation");
+			var tokenHandler = new JwtSecurityTokenHandler();
+			// Используем тот же секретный ключ, что и в Auth.API
+			var key = Encoding.UTF8.GetBytes(_configuration["JWT:Key"] ?? throw new Exception("JWT key not set"));
 
-			string cookieString = $"access_token={accessToken}; refresh_token={refreshToken}";
-			client.DefaultRequestHeaders.Add("Cookie", cookieString);
-
-			// todo сделать передаваемым как параметр
-			HttpResponseMessage response = await client.GetAsync("http://luna.auth.api:8080/api/v1/auth/validate");
-
-			if (!response.IsSuccessStatusCode)
+			tokenHandler.ValidateToken(accessToken, new TokenValidationParameters
 			{
-				_logger.LogWarning("Token validation failed with status code: {StatusCode}", response.StatusCode);
-				context.Response.StatusCode = (int) response.StatusCode;
+				ValidateIssuerSigningKey = true,
+				IssuerSigningKey = new SymmetricSecurityKey(key),
+				ValidateIssuer = true,
+				ValidIssuer = _configuration["JWT:Issuer"] ?? "http://localhost:7000",
+				ValidateAudience = true,
+				ValidAudience = _configuration["JWT:Audience"] ?? "user",
+				ValidateLifetime = true,
+				ClockSkew = TimeSpan.Zero
+			}, out SecurityToken validatedToken);
 
-				// Удаляем токены если они не валидны
-				context.Response.Cookies.Delete("access_token");
-				context.Response.Cookies.Delete("refresh_token");
+			var jwtToken = (JwtSecurityToken)validatedToken;
 
-				await context.Response.WriteAsync("Unauthorized: Invalid token");
+			// Извлекаем claims
+			var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier || x.Type == "sub" || x.Type == "nameid")?.Value;
+			var email = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email || x.Type == "email" || x.Type == "emailaddress")?.Value;
+			var sessionId = jwtToken.Claims.FirstOrDefault(x => x.Type == "sessionIdentifier")?.Value;
+
+			if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(sessionId))
+			{
+				_logger.LogWarning("Required claims missing in JWT token");
+				await WriteUnauthorizedResponse(context, "Invalid claims in token");
 				return;
 			}
 
-			string content = await response.Content.ReadAsStringAsync();
-
-			if (string.IsNullOrEmpty(content))
+			// Проверка активности сессии в Redis (blacklist check)
+			string sessionKey = $"{userId}:{sessionId}";
+			bool isSessionActive = await _redisDatabase.KeyExistsAsync(sessionKey);
+			if (!isSessionActive)
 			{
-				_logger.LogWarning("Empty response from auth validation service");
-				await WriteUnauthorizedResponse(context, "Invalid response from auth service");
+				_logger.LogWarning("Session is inactive or blacklisted in Redis: {SessionKey}", sessionKey);
+				await WriteUnauthorizedResponse(context, "Session is inactive or blacklisted");
 				return;
 			}
 
-			Dictionary<string, object>? userData = JsonSerializer.Deserialize<Dictionary<string, object>>(content);
+			// Добавляем заголовки для нижележащих сервисов
+			context.Request.Headers.Append("X-User-UserId", userId);
+			context.Request.Headers.Append("X-User-Email", email);
+			context.Request.Headers.Append("X-User-SessionId", sessionId);
 
-			if (userData != null)
+			if (path == "/test-auth")
 			{
-				foreach (var (key, value) in userData)
-				{
-					context.Request.Headers.Append($"X-User-{key}", value.ToString());
-				}
-			}
-
-			if (response.Headers.Contains("Set-Cookie"))
-			{
-				IEnumerable<string> cookies = response.Headers.GetValues("Set-Cookie");
-				foreach (string cookie in cookies)
-				{
-					context.Response.Headers.Append("Set-Cookie", cookie);
-				}
+				context.Response.StatusCode = 200;
+				context.Response.ContentType = "text/plain";
+				await context.Response.WriteAsync("authorized");
+				return;
 			}
 
 			await _next(context);
 		}
-		catch (HttpRequestException ex)
+		catch (SecurityTokenExpiredException ex)
 		{
-			_logger.LogError(ex, "Network error during token validation");
-			context.Response.StatusCode = 503;
-			await context.Response.WriteAsync("Service temporarily unavailable");
-		}
-		catch (JsonException ex)
-		{
-			_logger.LogError(ex, "Failed to parse auth service response");
-			context.Response.StatusCode = 500;
-			await context.Response.WriteAsync("Internal server error");
+			_logger.LogWarning("Token validation failed: expired");
+			context.Response.StatusCode = 401;
+			context.Response.Cookies.Delete("access_token");
+			context.Response.Cookies.Delete("refresh_token");
+			await context.Response.WriteAsync("Unauthorized: Token expired");
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Unexpected error during token validation");
-			context.Response.StatusCode = 500;
-			await context.Response.WriteAsync("Internal server error");
+			_logger.LogError(ex, "Local token validation failed");
+			context.Response.StatusCode = 401;
+			context.Response.Cookies.Delete("access_token");
+			context.Response.Cookies.Delete("refresh_token");
+			await context.Response.WriteAsync("Unauthorized: Invalid token");
 		}
 	}
 

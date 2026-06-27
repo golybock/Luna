@@ -4,22 +4,34 @@ using Ocelot.Middleware;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+string redisConnectionString = builder.Configuration.GetConnectionString("redis") ?? "redis:6379,abortConnect=false";
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
+	StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
 
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 builder.Services.AddOcelot(builder.Configuration).AddDelegatingHandler<CookieForwardingDelegatingHandler>(true);
 ;
 
 builder.Services.AddHttpClient("AuthValidation")
-	.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+	.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
 	{
 		UseCookies = true,
 		CookieContainer = new System.Net.CookieContainer(),
-		AllowAutoRedirect = false
+		AllowAutoRedirect = false,
+		PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+		PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+		MaxConnectionsPerServer = 1024
+	});
+
+builder.Services.AddHttpClient("ocelot")
+	.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+	{
+		PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+		PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+		MaxConnectionsPerServer = 1024
 	});
 
 
@@ -38,7 +50,6 @@ WebApplication app = builder.Build();
 
 app.Map("/", async context => { await context.Response.WriteAsync("available"); });
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
