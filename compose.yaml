@@ -1,9 +1,10 @@
-﻿services:
+services:
     # PostgreSQL
     postgres:
         container_name: postgres_luna
         image: postgres:16
         restart: on-failure
+        command: postgres -c max_connections=1000
         environment:
             POSTGRES_USER: system
             POSTGRES_PASSWORD: system
@@ -138,7 +139,6 @@
             - backend
         env_file:
             - "Luna.Auth.API/.env.local"
-
 
     luna.workspaces.api:
         image: luna.workspaces.api
