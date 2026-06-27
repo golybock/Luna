@@ -29,7 +29,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+	.AddStackExchangeRedis(builder.Configuration.GetConnectionString("redis") ?? "redis:6379,password=system,abortConnect=false");
 
 builder.Services.AddCors(options =>
 {
