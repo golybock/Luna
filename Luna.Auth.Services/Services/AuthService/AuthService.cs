@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using Luna.Auth.Models.Blank.Models;
 using Luna.Auth.Models.Database.Models;
@@ -152,7 +152,7 @@ public class AuthService : IAuthService
 			// в случае ошибки откатываем созданного пользователя в сервисе авторизации
 			try
 			{
-				await _userServiceClient.CreateUserAsync(newUser.Id, new UserBlank());
+				await _userServiceClient.CreateUserAsync(newUser.Id, new UserBlank() { Username = newUser.Email });
 			}
 			catch (Exception e)
 			{

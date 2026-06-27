@@ -90,8 +90,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<ISessionArchiveRepository, SessionArchiveRepository>();
-builder.Services.AddScoped<ISessionRepository, SessionRepository>(provider => new SessionRepository(builder.Configuration.GetConnectionString("redis")));
-builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>(provider => new VerificationCodeRepository(builder.Configuration.GetConnectionString("redis")));
+builder.Services.AddSingleton<ISessionRepository, SessionRepository>(provider => new SessionRepository(builder.Configuration.GetConnectionString("redis")));
+builder.Services.AddSingleton<IVerificationCodeRepository, VerificationCodeRepository>(provider => new VerificationCodeRepository(builder.Configuration.GetConnectionString("redis")));
 
 builder.Services.AddScoped<IAccountManagementService, AccountManagementService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
