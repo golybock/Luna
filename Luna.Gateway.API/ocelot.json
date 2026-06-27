@@ -150,6 +150,7 @@
 		}
 	],
 	"GlobalConfiguration": {
-		"RouteIsCaseSensitive": false
+		"RouteIsCaseSensitive": false,
+		"MaxConnectionsPerServer": 1024
 	}
 }
