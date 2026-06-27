@@ -1,4 +1,4 @@
-﻿using Luna.Pages.Models.Database.Models;
+using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -9,9 +9,8 @@ public abstract class PageRepositoryBase
 	protected readonly IMongoCollection<PageDatabase> PagesCollection;
 	protected  readonly ILogger<PageRepositoryBase> Logger;
 
-	protected PageRepositoryBase(string connectionString, string databaseName, string collectionName, ILogger<PageRepositoryBase> logger)
+	protected PageRepositoryBase(IMongoClient client, string databaseName, string collectionName, ILogger<PageRepositoryBase> logger)
 	{
-		MongoClient client = new MongoClient(connectionString);
 		IMongoDatabase? database = client.GetDatabase(databaseName);
 
 		PagesCollection = database.GetCollection<PageDatabase>(collectionName);

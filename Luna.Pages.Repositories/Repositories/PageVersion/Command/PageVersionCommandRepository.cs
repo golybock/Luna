@@ -1,11 +1,11 @@
-﻿using Luna.Pages.Models.Database.Models;
+using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Luna.Pages.Repositories.Repositories.PageVersion.Command;
 
 public class PageVersionCommandRepository : PageVersionRepositoryBase, IPageVersionCommandRepository
 {
-	public PageVersionCommandRepository(string connectionString, string databaseName, string collectionName, ILogger<PageVersionCommandRepository> logger) : base(connectionString, databaseName, collectionName, logger)
+	public PageVersionCommandRepository(MongoDB.Driver.IMongoClient client, string databaseName, string collectionName, ILogger<PageVersionCommandRepository> logger) : base(client, databaseName, collectionName, logger)
 	{
 	}
 

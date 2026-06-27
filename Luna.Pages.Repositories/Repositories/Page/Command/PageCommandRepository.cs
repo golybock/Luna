@@ -1,4 +1,3 @@
-﻿using System.Text.Json;
 using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -8,8 +7,8 @@ namespace Luna.Pages.Repositories.Repositories.Page.Command;
 
 public class PageCommandRepository : PageRepositoryBase, IPageCommandRepository
 {
-	public PageCommandRepository(string connectionString, string databaseName, string collectionName, ILogger<PageCommandRepository> logger)
-		: base(connectionString, databaseName, collectionName, logger) { }
+	public PageCommandRepository(IMongoClient client, string databaseName, string collectionName, ILogger<PageCommandRepository> logger)
+		: base(client, databaseName, collectionName, logger) { }
 
 	public async Task CreatePageAsync(PageDatabase page, CancellationToken cancellationToken = default)
 	{

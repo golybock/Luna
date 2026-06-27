@@ -103,31 +103,37 @@ string databaseName = mongoSettings.GetValue<string>("DatabaseName") ??
 string pageCollectionName = mongoSettings.GetValue<string>("PagesCollectionName") ?? "page";
 string pageVersionCollectionName = mongoSettings.GetValue<string>("PageVersionsCollectionName") ?? "page_versions";
 
-builder.Services.AddScoped<IWorkspaceUserRepository, WorkspaceUserRepository>();
+builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(provider => new MongoDB.Driver.MongoClient(connectionString));
 
 builder.Services.AddScoped<IPageQueryRepository>(provider =>
 {
+	MongoDB.Driver.IMongoClient client = provider.GetRequiredService<MongoDB.Driver.IMongoClient>();
 	ILogger<PageQueryRepository> logger = provider.GetRequiredService<ILogger<PageQueryRepository>>();
-	return new PageQueryRepository(connectionString, databaseName, pageCollectionName, logger);
+	return new PageQueryRepository(client, databaseName, pageCollectionName, logger);
 });
 
 builder.Services.AddScoped<IPageCommandRepository>(provider =>
 {
+	MongoDB.Driver.IMongoClient client = provider.GetRequiredService<MongoDB.Driver.IMongoClient>();
 	ILogger<PageCommandRepository> logger = provider.GetRequiredService<ILogger<PageCommandRepository>>();
-	return new PageCommandRepository(connectionString, databaseName, pageCollectionName, logger);
+	return new PageCommandRepository(client, databaseName, pageCollectionName, logger);
 });
 
 builder.Services.AddScoped<IPageVersionQueryRepository>(provider =>
 {
+	MongoDB.Driver.IMongoClient client = provider.GetRequiredService<MongoDB.Driver.IMongoClient>();
 	ILogger<PageVersionQueryRepository> logger = provider.GetRequiredService<ILogger<PageVersionQueryRepository>>();
-	return new PageVersionQueryRepository(connectionString, databaseName, pageVersionCollectionName, logger);
+	return new PageVersionQueryRepository(client, databaseName, pageVersionCollectionName, logger);
 });
 
 builder.Services.AddScoped<IPageVersionCommandRepository>(provider =>
 {
+	MongoDB.Driver.IMongoClient client = provider.GetRequiredService<MongoDB.Driver.IMongoClient>();
 	ILogger<PageVersionCommandRepository> logger = provider.GetRequiredService<ILogger<PageVersionCommandRepository>>();
-	return new PageVersionCommandRepository(connectionString, databaseName, pageVersionCollectionName, logger);
+	return new PageVersionCommandRepository(client, databaseName, pageVersionCollectionName, logger);
 });
+
+builder.Services.AddScoped<IWorkspaceUserRepository, WorkspaceUserRepository>();
 
 WebApplication app = builder.Build();
 

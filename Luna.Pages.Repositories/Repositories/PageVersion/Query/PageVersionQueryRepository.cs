@@ -1,4 +1,4 @@
-﻿using Luna.Pages.Models.Database.Models;
+using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -6,8 +6,8 @@ namespace Luna.Pages.Repositories.Repositories.PageVersion.Query;
 
 public class PageVersionQueryRepository : PageVersionRepositoryBase, IPageVersionQueryRepository
 {
-	public PageVersionQueryRepository(string connectionString, string databaseName, string collectionName,
-		ILogger<PageVersionQueryRepository> logger) : base(connectionString, databaseName, collectionName, logger)
+	public PageVersionQueryRepository(IMongoClient client, string databaseName, string collectionName,
+		ILogger<PageVersionQueryRepository> logger) : base(client, databaseName, collectionName, logger)
 	{
 	}
 

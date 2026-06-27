@@ -1,4 +1,4 @@
-﻿using Luna.Pages.Models.Database.Additional;
+using Luna.Pages.Models.Database.Additional;
 using Luna.Pages.Models.Database.Models;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -8,9 +8,9 @@ namespace Luna.Pages.Repositories.Repositories.Page.Query;
 
 public class PageQueryRepository : PageRepositoryBase, IPageQueryRepository
 {
-	public PageQueryRepository(string connectionString, string databaseName, string collectionName,
+	public PageQueryRepository(IMongoClient client, string databaseName, string collectionName,
 		ILogger<PageQueryRepository> logger)
-		: base(connectionString, databaseName, collectionName, logger)
+		: base(client, databaseName, collectionName, logger)
 	{
 	}
 
