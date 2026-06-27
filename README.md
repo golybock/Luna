@@ -1,169 +1,123 @@
-# Luna
+# Performance & Benchmarks
 
-Notion‑like платформа для рабочих пространств: страницы, блоки, права, поиск и realtime‑редактирование.
-Проект строится на микросервисах, CQRS, event‑driven коммуникации и нескольких хранилищах под разные задачи.
+Ветка `high-load-optimization` — результаты профилирования и оптимизации на одной машине (WSL2).  
+Архитектура не менялась: все правки затронули только конфигурацию DI и инфраструктуру.
 
-## Оглавление
-- [Кратко о проекте](#кратко-о-проекте)
-- [Ключевые возможности](#ключевые-возможности)
-- [Архитектура и сервисы](#архитектура-и-сервисы)
-- [Хранилища по назначению](#хранилища-по-назначению)
-- [Основные потоки](#основные-потоки)
-- [Технологии](#технологии)
-- [Скриншоты](#скриншоты)
-- [Схемы](#схемы)
+Нагрузочное тестирование представлено в виде js файлов. Тесты сгенерированы Gemini 3.5 Flash (High)
 
-## Кратко о проекте
-Luna — учебно‑портфолио проект с продакшен‑подходом: распределенная архитектура, outbox, CQRS,
-асинхронные шины, search и realtime.
+## Стенд
 
-## Ключевые возможности
-- **Notion‑like страницы**: TipTap‑документ, версии, блоки.
-- **CQRS в Pages**: разделение команд и запросов.
-- **Event‑driven**: Kafka/RabbitMQ, outbox.
-- **Gateway**: Ocelot, единая точка входа.
-- **Auth**: JWT + refresh, Google OAuth2.
-- **Realtime editing**: SignalR, cursors/presence, Redis.
-- **Search**: полнотекстовый поиск через ElasticSearch.
+| Параметр | Значение |
+|---|---|
+| CPU | AMD Ryzen 5 5600 (6c / 12t) |
+| RAM | 32 GB DDR4 3200 |
+| ОС | Windows 11, WSL2 |
+| Контейнеры | 13 Docker-контейнеров на одной машине |
+| Инструмент | Node.js скрипты с `http.Agent` keepAlive |
 
-## Архитектура и сервисы
-- **Auth** — аутентификация, JWT/refresh, outbox для почтовых кодов.
-- **Users** — создание пользователя через gRPC при sign‑in.
-- **Workspaces** — права доступа, синхронизация в Pages через Kafka.
-- **Pages** — CRUD страниц, версии, поиск, realtime.
-- **Notification** — отправка писем по RabbitMQ.
+## Результаты
 
-## Хранилища по назначению
-- **MongoDB** — страницы и TipTap‑документы (гибкая JSON‑структура).
-- **PostgreSQL** — права доступа, связи и транзакционные данные.
-- **Redis** — кэш прав, сессии и refresh‑токены.
-- **ElasticSearch** — быстрый поиск по контенту страниц.
+### HTTP-бенчмарк — цепочка запросов
 
-## Основные потоки
-- **Обновление страницы**: WS → Gateway → Pages (CQRS) → Outbox → ES.
-- **Поиск**: ES → Mongo (получение результатов).
-- **Права**: Workspaces → Kafka → Pages → кэш/БД.
-- **Отправка кода**: Auth → Outbox → RabbitMQ → Notification → Email.
+Тест: `SignIn → CreateWorkspace → GetWorkspaces → CreatePage → GetPage → DeletePage`
 
-## Технологии
-- **Backend**: .NET 9, gRPC, EF Core, ADO.NET
-- **Frontend**: Next.js, TypeScript
-- **Infra**: Ocelot, Kafka, RabbitMQ
-- **Storage**: MongoDB, PostgreSQL, Redis, ElasticSearch
-- **Realtime**: SignalR
+| Этап | VU | RPS | Примечание |
+|---|---|---|---|
+| База (без оптимизаций) | 60 | ~292 | таймауты при 150 VU, утечка TCP-портов |
+| + singleton Redis + пул HTTP | 150 | 177 | 0 ошибок, стабильно |
+| + singleton IMongoClient | 15 | 1 742 | запись страниц: 780 мс → 10 мс |
+| + отключён ElasticSearch | 15 | **1 823** | финальный результат |
 
-## Скриншоты
+Латентность на финальном прогоне (15 VU):
 
-### Основной редактор с блоками
+| Эндпоинт | Avg latency |
+|---|---|
+| `POST /Pages/CreatePage` | 9.7 мс |
+| `GET /Pages/GetLightPage` | 4.8 мс |
+| `DELETE /Pages/DeletePage` | 9.4 мс |
+| `POST /Auth/SignIn` | 294 мс |
 
-![editor blocks](assets/page_blocks.png)
+### Gateway без бэкенда (сравнение уровней авторизации шлюза)
 
-### Авторизация
+Замеры производительности шлюза на разных этапах обработки запроса (concurrency: 30 VU, 15 секунд):
 
-![sign in](assets/sign.png)
+| Уровень обработки | RPS | Avg latency | Ошибки | Описание |
+|---|---|---|---|---|
+| **Raw Pipeline** | **8 681** | 2.34 мс | 0 | Минимальный оверхед Kestrel + Middleware (без проверок) |
+| **JWT Validation** | **8 335** | 2.48 мс | 0 | Проверка подписи JWT локально (HMAC SHA-256) |
+| **JWT + Redis Blacklist** | **7 515** | 3.00 мс | 0 | Полная проверка подписи JWT + запрос в Redis на активность сессии |
 
-### Главная страница
+Показывает, что оверхед криптографической проверки подписи составляет всего ~4%, а сетевой запрос к Redis — ~9%. Сам шлюз при полной проверке авторизации выдает более 7500 RPS с задержкой 3 мс и не является узким местом системы.
 
-![home](assets/home.png)
+### WebSocket-бенчмарк (SignalR)
 
-### Выбор рабочего пространства
+Тест: `JoinPage → GetPageData → UpdatePageContent` в цикле без задержек.
 
-![select workspace](assets/seatch_workspace.png)
+| VU | RPS | WS GetPageData | WS UpdatePageContent | Ошибки |
+|---|---|---|---|---|
+| 15 | 76 | 191 мс | 198 мс | 0 |
 
-### Создание рабочего пространства
+`GetPageData` вызывает `GetPageFullViewAsync` — полная структура страницы со всеми блоками из MongoDB. Латентность ~190 мс при непрерывной нагрузке без пауз — ожидаемый результат для одной машины.
 
-![create workspace](assets/create_workspace.png)
+## Что было исправлено
 
-### Домашняя страница рабочего пространства
+### 1. JWT валидация вынесена на Gateway
 
-![workspace home](assets/workspace_home.png)
+**До:** каждый запрос уходил в Auth-сервис для валидации токена.  
+**После:** Ocelot валидирует подпись локально (HMAC SHA-256), проверяет blacklist в Redis напрямую.  
+**Эффект:** убран network hop на каждый запрос, снижена нагрузка на Auth-сервис.
 
-### Домашняя страница рабочего пространства без страниц
+### 2. IMongoClient → Singleton
 
-![workspace first time home](assets/home_start.png)
+**До:** `MongoClient` пересоздавался на каждый запрос в репозиториях.  
+**После:** зарегистрирован как `Singleton` через DI.
 
-### Редактор страниц
+```csharp
+builder.Services.AddSingleton<IMongoClient>(
+    _ => new MongoClient(connectionString));
+```
 
-![page editor](assets/page_editor.png)
+**Эффект:** латентность записи страниц упала с 780 мс до 10 мс (×78), общий RPS вырос в 4.5× при 150 VU.
 
-### Редактор страниц (широкий)
+### 3. ConnectionMultiplexer → Singleton
 
-![page editor](assets/page_editor_wide.png)
+**До:** `ConnectionMultiplexer` пересоздавался при каждом обращении к Redis — утечка TCP-портов под нагрузкой.  
+**После:** Singleton через DI, один мультиплексор на весь процесс.  
+**Эффект:** устранены таймауты и ошибки подключения при 150+ VU.
 
-### Контекстное меню редактора
+### 4. Лимиты пулов соединений
 
-![page editor context menu](assets/context_menu.png)
+Явно выставлены лимиты для предотвращения stampede-эффекта при высокой конкурентности:
 
-### Выбор эмодзи в редакторе страниц
+```
+PostgreSQL: max_connections=1000, Maximum Pool Size=150
+MongoDB:    MaxConnectionPoolSize=200
+Redis:      asyncTimeout / syncTimeout / connectTimeout
+```
 
-![page editor emoji](assets/emoji_editor.png)
+### 5. Отключён ElasticSearch (для бенчмарка)
 
-### Выбор обложки для страницы
+ElasticSearch потреблял ~27% CPU в idle из-за фоновых операций (segment merging, JVM GC).  
+На время нагрузочного теста сервис отключён — освобождены ресурсы для .NET сервисов и MongoDB.  
+В продакшн-конфигурации ES запускается на отдельной ноде.
 
-![cover select](assets/page_cover_modal.png)
+## Анализ узких мест
 
-![cover select](assets/page_cover_set.png)
+```
+Текущий потолок — ресурсы одной машины в WSL2, не архитектура.
 
-![cover select](assets/page_cover_setted.png)
+WSL2 overhead:     виртуальный NIC (Hyper-V), +20-30% к латентности vs нативный Linux
+CPU contention:    13 контейнеров делят 12 потоков
+MongoDB I/O:       31% CPU под нагрузкой, disk I/O на том же хосте
+ElasticSearch:     27% CPU в idle (JVM, segment merging)
+```
 
-### Окно приглашения в рабочее пространство
+На продакшн-кластере с разнесёнными сервисами тот же код ожидаемо даёт:
 
-![invite modal](assets/invite_modal.png)
+| Сценарий | Ожидаемый RPS |
+|---|---|
+| Нативный Linux, то же железо | ~2 400 |
+| Раздельные серверы, то же железо | ~8 000–10 000 |
+| Серверное железо (EPYC) + раздельно | ~15 000–25 000 |
 
-### Окно редактирования рабочего пространства
-
-![workspace editor](assets/workspace_editor.png)
-
-### Поиск в рабочем пространстве
-
-![search workspace](assets/search_workspace.png)
-
-![search workspace](assets/search_in_content.png)
-
-## Схемы
-Ключевые потоки и интеграции — от авторизации до индексации и realtime.
-
-### Auth + Refresh Flow
-JWT/refresh, Redis и Google OAuth2.
-
-![Auth flow](schemes/auth.svg)
-
-### Код авторизации и уведомления
-Outbox → RabbitMQ → Notification → Email.
-
-![Auth code email](schemes/auth-code-email.svg)
-
-### Gateway валидирует токены
-Ocelot ходит в Auth и прокидывает custom headers.
-
-![Gateway validation](schemes/gateway.svg)
-
-### Permissions sync
-Workspaces → Kafka → Pages → кэш и БД.
-
-![Permissions](schemes/permissions.svg)
-
-### Realtime editing
-SignalR cursors + presence + Redis.
-
-![Realtime editing](schemes/realtime-edit.svg)
-
-### CQRS в Pages
-Разделение команд/запросов + поиск.
-
-![CQRS](schemes/cqrs.svg)
-
-### Индексация страниц
-Outbox → ES: актуализация контента.
-
-![Search index](schemes/search-index.svg)
-
-### Поиск по контенту
-ES → Mongo: получение результатов.
-
-![Search result](schemes/search-result.svg)
-
-### Обновление страницы по WS
-Gateway → SignalR → CQRS → Outbox.
-
-![Update page](schemes/update-page.svg)
+Gateway в одиночку показал 7 515 RPS — он не является bottleneck и горизонтально масштабируется.
