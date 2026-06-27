@@ -1,4 +1,4 @@
-﻿using Grpc.Net.Client;
+using Grpc.Net.Client;
 using Luna.Users.Models.Blank.Models;
 using Luna.Users.Models.Domain.Models;
 using Luna.Users.Models.View.Models;
@@ -99,8 +99,8 @@ public class UserServiceClient : IUserServiceClient, IDisposable
 				User = new UserBlankMessage
 				{
 					Id = userId.ToString(),
-					Username = userBlank?.Username,
-					Image = userBlank?.Image,
+					Username = userBlank?.Username ?? string.Empty,
+					Image = userBlank?.Image ?? string.Empty,
 				}
 			};
 
