@@ -52,7 +52,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddSingleton<IDatabaseOptions>(_ => databaseOptions);
 
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
-builder.Services.AddScoped<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider =>
+builder.Services.AddSingleton<IWorkspacePermissionCacheRepository, WorkspacePermissionCacheRepository>(provider =>
 	new WorkspacePermissionCacheRepository(builder.Configuration.GetConnectionString("redis")));
 builder.Services.AddScoped<IInviteRepository, InviteRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
